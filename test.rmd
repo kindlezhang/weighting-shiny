@@ -1,0 +1,22 @@
+---
+title: "test"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE,
+                      fig.width = 8,
+                      fig.height = 6)
+```
+
+```{r}
+library(shiny)
+# runExample("01_hello")
+```
+
+```{r}
+# runApp("App-1")
+runApp("weighting", display.mode = "showcase")
+```
