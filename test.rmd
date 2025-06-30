@@ -21,12 +21,11 @@ library(shiny)
 # runApp("App-2")
 # runApp("App-3")
 # runApp("census-app", display.mode = "showcase")
-runApp("weighting", display.mode = "showcase")
 ```
 
 ```{r}
-counties <- readRDS("census-app/data/counties.rds")
-head(counties)
+# counties <- readRDS("census-app/data/counties.rds")
+# head(counties)
 ```
 
 ```{r}
@@ -48,7 +47,7 @@ head(counties)
 - Only place code that Shiny must rerun to build an object inside of a render* function.
 
 ```{r}
-runApp("census-app", display.mode = "showcase")
+# runApp("census-app", display.mode = "showcase")
 ```
 
 ```{r}
@@ -56,5 +55,48 @@ runApp("census-app", display.mode = "showcase")
 ```
 
 ```{r}
-runApp("stockVis")
+# runApp("stockVis")
+```
+
+# test weighting shiny
+
+```{r}
+library(shiny)
+runApp("weighting", display.mode = "showcase")
+```
+
+```{r}
+library(tidyverse)
+data = read_csv("weighting/data/example.csv")
+categorical_vars = c("strata", "age_grp")
+weight_var = "weight"
+response_var = "HbA1c"
+```
+
+```{r}
+if (!all(c(response_var, weight_var, categorical_vars) %in% names(data))) {
+    stop("One or more specified columns are not present in the data.")
+  }
+
+data[categorical_vars] <- lapply(data[categorical_vars], as.factor)
+
+summary(data)
+
+# Create a formula for the model
+formula <- as.formula(paste("!is.na(", response_var, ") ~", paste(categorical_vars, collapse = " + ")))
+
+print(formula)
+
+ps_model <- glm(formula, data = data, family = binomial(link = "logit"))
+```
+
+```{r}
+source("weighting/helpers.R")
+sample = propensity_score_adjustment(
+  data = data,
+  response_var = response_var,
+  weight_var = weight_var,
+  categorical_vars = categorical_vars
+)
+sample
 ```
