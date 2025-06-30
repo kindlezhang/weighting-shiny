@@ -18,5 +18,43 @@ library(shiny)
 
 ```{r}
 # runApp("App-1")
+# runApp("App-2")
+# runApp("App-3")
+# runApp("census-app", display.mode = "showcase")
 runApp("weighting", display.mode = "showcase")
+```
+
+```{r}
+counties <- readRDS("census-app/data/counties.rds")
+head(counties)
+```
+
+```{r}
+# install.packages(c("maps", "mapproj"))
+```
+
+```{r}
+# library(maps)
+# library(mapproj)
+# source("census-app/helpers.R")
+# counties <- readRDS("census-app/data/counties.rds")
+# percent_map(counties$white, "darkgreen", "% White")
+```
+
+- Source scripts, load libraries, and read data sets at the beginning of app.R outside of the server function.
+
+- Define user specific objects inside server function, but outside of any render* calls. 
+
+- Only place code that Shiny must rerun to build an object inside of a render* function.
+
+```{r}
+runApp("census-app", display.mode = "showcase")
+```
+
+```{r}
+# install.packages("quantmod")
+```
+
+```{r}
+runApp("stockVis")
 ```
