@@ -256,3 +256,12 @@ model_data$WT_xgboost[response_var == 0] = 0
 ## Construct the new weight
 model_data$adjW_xgboost = model_data[[weight_var]] * model_data$WT_xgboost
 ```
+
+# generate data 
+
+```{r}
+library(tidyverse)
+data = read_csv("weighting/data/example.csv")
+data.complete = data[is.na(data$HbA1c)==FALSE,]
+write.csv(data.complete, file = "example_2.csv", row.names = FALSE)
+```
