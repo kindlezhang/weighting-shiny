@@ -265,3 +265,43 @@ data = read_csv("weighting/data/example.csv")
 data.complete = data[is.na(data$HbA1c)==FALSE,]
 write.csv(data.complete, file = "example_2.csv", row.names = FALSE)
 ```
+
+```{r}
+library(shiny)
+runApp("weighting", display.mode = "showcase")
+```
+
+```{r}
+# data = read_csv("weighting/data/example_2.csv")
+# install.packages("rpart.plot") 
+# install.packages("egg")
+```
+
+without weight
+correlation graph
+calibration
+lay out
+table download and view
+if name is not "weight"
+error message
+question mark (example for data, match )
+
+superlearner
+graph
+histogram
+theme (whithe background and black grid)
+
+
+1. warning 
+2. reference & intepretation
+3. analysis data visulation  
+4. download + show lines
+5. bubble plot
+6. superlearner
+7. preface
+8. machine learning
+wed 10:30
+
+12.10 
+model based approach
+Thur 9:30

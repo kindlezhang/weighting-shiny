@@ -1,16 +1,107 @@
+# For the whole website
+
+# loading necessary libraries
+
 library(shiny)
 library(bslib)
 library(tidyverse)
 library(survey)
+library(shinyjs)
+library(dotwhisker)
+library(cowplot)
+library(rpart.plot)
+
+# load helper functions
 
 source("helpers.R")
 
-ui <- page_navbar(
-  title = "a weighting application",
+url1 = "https://twitter.com/intent/tweet?text=Hello%20world&url=https://msph.shinyapps.io/nyc-neighborhoods-covid/"
+url2 = "https://www.facebook.com/sharer.php?u=https://msph.shinyapps.io/nyc-neighborhoods-covid/"
+url3 = "https://www.instagram.com/columbiapublichealth/"
+url4 = "https://www.linkedin.com/shareArticle?mini=true&url=https://msph.shinyapps.io/nyc-neighborhoods-covid/&title=&summary=&source="
+url5 = "mailto:NYCN-COVID@cumc.columbia.edu?&subject=&body=https://msph.shinyapps.io/nyc-neighborhoods-covid/"
+url6 = "whatsapp://send?text=https://msph.shinyapps.io/nyc-neighborhoods-covid/"
+url7 = "https://service.weibo.com/share/share.php?url=https://msph.shinyapps.io/nyc-neighborhoods-covid/&title="
 
-  navset_tab(
-    nav_panel("Home Page",
-      card(
+# customCSS
+
+custom_card_header_style <- tags$head(
+  tags$style(HTML("
+    .card-header {
+      font-size: 2.0rem;     
+      font-weight: bold;      
+      color: #0d6efd;          
+      background-color: #f8f9fa; 
+    }
+  "))
+)
+
+# Define UI for application
+
+## ui
+
+ui <- 
+  navbarPage(
+    custom_card_header_style,
+    theme = "shiny.css",
+    title = div(img(src='whitelogo.png',style="margin-top: -14px; padding-right:10px;padding-bottom:10px", height = 50)),
+    windowTitle = "weighting application",
+    id = "menus",
+
+    tabPanel(title = 'Home',
+              shinyjs::useShinyjs(),
+              fluidRow(
+                column(width = 5, offset = 1, div(img(src = "newlogo3.png", height = "100%",width = "100%"),
+                                                      style="text-align: center;")),
+                column(width = 5,  div(img(src = "HomePagepic.png", height = "100%",width = "100%"),
+                                           style="text-align: center;"))),
+              br(),
+              fluidRow(column(width = 10, offset = 1, span(htmlOutput("Hometext"), style="font-size: 15px;line-height:150%"))),
+              br(),
+              fluidRow(align="center",
+                        span(htmlOutput("bannertext", style="color:white;font-family: sans-serif, Helvetica Neue, Arial;
+                              letter-spacing: 0.3px;font-size:18px")),
+                        #span(htmlOutput("sharetext", style="color:white")),
+                        #br(),
+                        #img(src='bottomlogo.png', height="20%", width="20%"),
+                       h5("Share on", style="color:white;font-size:12px"),
+                    actionButton("twitter_index",
+                                 label = "",
+                                 icon = icon("twitter"),
+                                 onclick = sprintf("window.open('%s')", url1),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("fb_index",
+                                 label = "",
+                                 icon = icon("facebook"),
+                                 onclick = sprintf("window.open('%s')", url2),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    #actionButton("ins_index",
+                    #             label = "",
+                    #             icon = icon("instagram"),
+                    #             onclick = sprintf("window.open('%s')", url3),
+                    #             style = "border-color: #FFFFFF;"),
+                    actionButton("linkedin_index",
+                                 label = "",
+                                 icon = icon("linkedin"),
+                                 onclick = sprintf("window.open('%s')", url4),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("whats_index",
+                                 label = "",
+                                 icon = icon("whatsapp"),
+                                 onclick = sprintf("window.open('%s')", url6),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("email_index",
+                                 label = "",
+                                 icon = icon("envelope"),
+                                 onclick = sprintf("window.open('%s')", url5),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    style = "background-color:#225091;padding-top:40px;padding-bottom:40px;"
+                    
+           )
+           
+  ),
+  tabPanel(title = "Data Upload",
+    card(
         card_header("Welcome to the Weighting Application"),
         p("This application allows you to upload a dataset and perform weighting adjustments based on selected variables."),
         p("Please upload your dataset in CSV format and select the appropriate variables for analysis."),
@@ -27,10 +118,49 @@ ui <- page_navbar(
       card(
         card_header("Summary"),
         verbatimTextOutput("summary_output")
-      )
-    ),
-    nav_panel("nonresponse adjustment",
-        
+      ),
+      br(),
+      fluidRow(align="center",
+                    span(htmlOutput("bannertext_2", style="color:white;font-family: sans-serif, Helvetica Neue, Arial;
+  letter-spacing: 0.3px;font-size:18px")),
+                    #span(htmlOutput("sharetext", style="color:white")),
+                    #br(),
+                    #img(src='bottomlogo.png', height="20%", width="20%"),
+                    h5("Share on", style="color:white;font-size:12px"),
+                    actionButton("twitter_index",
+                                 label = "",
+                                 icon = icon("twitter"),
+                                 onclick = sprintf("window.open('%s')", url1),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("fb_index",
+                                 label = "",
+                                 icon = icon("facebook"),
+                                 onclick = sprintf("window.open('%s')", url2),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    #actionButton("ins_index",
+                    #             label = "",
+                    #             icon = icon("instagram"),
+                    #             onclick = sprintf("window.open('%s')", url3),
+                    #             style = "border-color: #FFFFFF;"),
+                    actionButton("linkedin_index",
+                                 label = "",
+                                 icon = icon("linkedin"),
+                                 onclick = sprintf("window.open('%s')", url4),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("whats_index",
+                                 label = "",
+                                 icon = icon("whatsapp"),
+                                 onclick = sprintf("window.open('%s')", url6),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("email_index",
+                                 label = "",
+                                 icon = icon("envelope"),
+                                 onclick = sprintf("window.open('%s')", url5),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    style = "background-color:#225091;padding-top:40px;padding-bottom:40px;"
+              )
+  ),
+  tabPanel(title="Nonresponse adjustment",
         card(
           card_header("Variable Selection"),
           helpText("Select the categorical variables, response variable, and weight variable from the uploaded dataset."),
@@ -48,41 +178,152 @@ ui <- page_navbar(
           textOutput("continuous_vars"),
           textOutput("response_var"),
           textOutput("weight_var"),
-      ),
-      card(
-        card_header("weighting adjustment"),
-        helpText("This section will provide options for weighting adjustments based on the selected variables."),
-        fluidRow(
-          column(4, selectInput(
-          "select_weighting",
-          "Select method for weighting adjustment:",
-          choices = c("Inverse Propensity Score", "Propensity score stratification", "CHAID algorithm", "classification and regression trees (CART)", "BART package", "xgboost package" ),
-          selected = "Inverse Propensity Score"
-        )),
-          column(8, textOutput("method_description"))
-        ),
-        actionButton("show_table", "Show Table", class = "btn-sm")
-      ),
-      card(
-        card_header("Weighting Adjustment Results"),
-        tableOutput("weighting_results")
-      ),
-      card(
-        card_header("Weighting Adjustment Plot"),
-        plotOutput("weighting_plot")
-      )
-    ),
-    nav_panel("post-stratification",
+          div(style = "text-align: left; margin-top: 10px;",
+              actionButton("show_table", "Generate Analysis", class = "btn-primary"))
+          ),
+        card(
+          card_header("Weighting Adjustment"),
+          helpText("This section will provide options for weighting adjustments based on the selected variables."),
+            fluidRow(
+              column(4, selectInput(
+              "select_weighting",
+              "Select method for weighting adjustment:",
+              choices = c("Inverse Propensity Score", "Propensity score stratification", "CHAID algorithm", "classification and regression trees (CART)", "BART package", "xgboost package" ),
+              selected = "Inverse Propensity Score"
+            )),
+          column(8, textOutput("method_description")),
+          # actionButton("show_warning", "warning", class = "btn-sm", style = "margin-left: 10px; height: 35px;")
+          uiOutput("chaid_warning_btn")
+          ),
+          # style = "width: 100%; min-height: 300px; margin: 30px auto;"
+          h4("Weighting Adjustment Results", style = "margin-top: 25px;"),
+          div(style = "text-align: left; margin-top: 10px;",
+                actionButton("show_table_result", "Show Table", class = "btn-primary"),
+                downloadButton("download_weighting_table", "Download Results")),
+          conditionalPanel(
+            condition = "input.show_table_result % 2 == 1", 
+            tableOutput("weighting_results")
+            ),
+          h4("Weighting Adjustment Plot", style = "margin-top: 25px;"),
+          div(style = "text-align: left; margin-top: 10px;",
+                actionButton("show_plot_result", "Show Plot", class = "btn-primary")),
+          conditionalPanel(
+            condition = "input.show_plot_result % 2 == 1", 
+            plotOutput("weighting_plot")
+            ),
+          h4("Analysis Plot", style = "margin-top: 25px;"),
+            div(style = "text-align: left; margin-top: 10px;",
+                actionButton("show_analysis_plot", "Show Plot", class = "btn-primary")),
+          conditionalPanel(
+            condition = "input.show_analysis_plot % 2 == 1", 
+            plotOutput("analysis_plot")
+            ),
+            h4("Compare Methods", style = "margin-top: 25px;"),
+             div(style = "text-align: left; margin-top: 10px;",
+                actionButton("show_compare_plot", "Show Plot", class = "btn-primary")),
+          conditionalPanel(
+            condition = "input.show_compare_plot % 2 == 1", 
+            plotOutput("compare_plot")
+            )
+          ),
+      br(),
+      fluidRow(align="center",
+                    span(htmlOutput("bannertext_3", style="color:white;font-family: sans-serif, Helvetica Neue, Arial;
+                                      letter-spacing: 0.3px;font-size:18px")),
+                    #span(htmlOutput("sharetext", style="color:white")),
+                    #br(),
+                    #img(src='bottomlogo.png', height="20%", width="20%"),
+                    h5("Share on", style="color:white;font-size:12px"),
+                    actionButton("twitter_index",
+                                 label = "",
+                                 icon = icon("twitter"),
+                                 onclick = sprintf("window.open('%s')", url1),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("fb_index",
+                                 label = "",
+                                 icon = icon("facebook"),
+                                 onclick = sprintf("window.open('%s')", url2),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    #actionButton("ins_index",
+                    #             label = "",
+                    #             icon = icon("instagram"),
+                    #             onclick = sprintf("window.open('%s')", url3),
+                    #             style = "border-color: #FFFFFF;"),
+                    actionButton("linkedin_index",
+                                 label = "",
+                                 icon = icon("linkedin"),
+                                 onclick = sprintf("window.open('%s')", url4),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("whats_index",
+                                 label = "",
+                                 icon = icon("whatsapp"),
+                                 onclick = sprintf("window.open('%s')", url6),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("email_index",
+                                 label = "",
+                                 icon = icon("envelope"),
+                                 onclick = sprintf("window.open('%s')", url5),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    style = "background-color:#225091;padding-top:40px;padding-bottom:40px;"
+           )),
+  tabPanel(title = "post-stratification",
+      # card(
+      #   card_header("Post-stratification and raking"),
+      #   helpText("This section will provide options for post-stratification adjustments based on the selected variables."),
+      #   fluidRow(
+      #       column(6, fileInput("file_post", label = "original survy data")),
+      #       column(6, fileInput("file_population", label = "poststratification table"))
+      #     ),
+      # ),
       card(
         card_header("Post-stratification and raking"),
-        helpText("This section will provide options for post-stratification adjustments based on the selected variables."),
-        fluidRow(
-            column(6, fileInput("file_post", label = "original survy data")),
-            column(6, fileInput("file_population", label = "poststratification table"))
+        style = "border: 1px solid #dee2e6; margin-bottom: 20px;", 
+        helpText("Choose a method and upload the corresponding inputs."),
+
+        tabsetPanel(
+          id = "ps_method",
+          type = "pills",  # 或 "tabs"
+          
+          # --- Tab 1: Post-stratification ---
+          tabPanel(
+            title = "Post-stratification", value = "post",
+            helpText("This section will provide options for post-stratification adjustments based on the selected variables."),
+            fluidRow(
+            column(6, fileInput("file_post", label = "Original survy data")),
+            column(6, 
+              tags$label("Post-stratification Table", class = "control-label"),
+              div(style = "display: flex; align-items: center;",
+                         fileInput("file_population", label = NULL, width = "80%"),
+                         actionButton("show_ps_example", "example", class = "btn-sm", style = "margin-left: 10px; height: 35px;")
+                     )
+            )
+          )
           ),
+          
+          # --- Tab 2: Raking ---
+          tabPanel(
+            title = "Raking", value = "raking",
+            helpText("This section will provide options for raking adjustments based on the selected variables and target margins."),
+            fluidRow(
+              column(6, fileInput("file_rake",       label = "Original survey data")),
+              column(6, fileInput("file_rake_margins", label = "Target margins (CSV)"))
+            )
+          ),
+          
+          # --- Tab 3: Calibration ---
+          tabPanel(
+            title = "Calibration", value = "calib",
+            helpText("This section will provide options for calibration adjustments based on the selected variables and calibration totals."),
+            fluidRow(
+              column(6, fileInput("file_calib",        label = "Original survey data")),
+              column(6, fileInput("file_calib_totals", label = "Calibration totals/controls (CSV)"))
+            )
+          )
+        )
       ),
       card(
-        card_header("related questions"),
+        card_header("Related questions"),
+        style = "border: 1px solid #dee2e6; margin-bottom: 20px;",
         helpText("Please select the appropriate parameters based on the type of sampling method, such as whether stratification 
         or clustering is used, whether weights are applied, and whether population-level adjustments are necessary."),
         fluidRow(
@@ -99,14 +340,62 @@ ui <- page_navbar(
       ),
       card(
         card_header("Post-stratification Results"),
-        tableOutput("post_strat_results"),
-        div(style = "text-align: right; margin-top: 10px;",
+        style = "border: 1px solid #dee2e6; margin-bottom: 20px;",
+        uiOutput("post_strat_results_ui"),
+        div(style = "text-align: left; margin-top: 10px;",
+          actionButton("show_post_strat_table", "Show Table", class = "btn-primary"),
           downloadButton("download_post_strat", "Download Results")
         )
-      )
-    ),
-    nav_panel("weight triming",
+      ),
       card(
+        card_header("Post-stratification Plot"),
+        style = "border: 1px solid #dee2e6; margin-bottom: 20px;",
+        plotOutput("post_strat_plot"),
+        plotOutput("population_dist_plot")
+      ),
+      br(),
+      fluidRow(align="center",
+                    span(htmlOutput("bannertext_4", style="color:white;font-family: sans-serif, Helvetica Neue, Arial;
+  letter-spacing: 0.3px;font-size:18px")),
+                    #span(htmlOutput("sharetext", style="color:white")),
+                    #br(),
+                    #img(src='bottomlogo.png', height="20%", width="20%"),
+                    h5("Share on", style="color:white;font-size:12px"),
+                    actionButton("twitter_index",
+                                 label = "",
+                                 icon = icon("twitter"),
+                                 onclick = sprintf("window.open('%s')", url1),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("fb_index",
+                                 label = "",
+                                 icon = icon("facebook"),
+                                 onclick = sprintf("window.open('%s')", url2),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    #actionButton("ins_index",
+                    #             label = "",
+                    #             icon = icon("instagram"),
+                    #             onclick = sprintf("window.open('%s')", url3),
+                    #             style = "border-color: #FFFFFF;"),
+                    actionButton("linkedin_index",
+                                 label = "",
+                                 icon = icon("linkedin"),
+                                 onclick = sprintf("window.open('%s')", url4),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("whats_index",
+                                 label = "",
+                                 icon = icon("whatsapp"),
+                                 onclick = sprintf("window.open('%s')", url6),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("email_index",
+                                 label = "",
+                                 icon = icon("envelope"),
+                                 onclick = sprintf("window.open('%s')", url5),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    style = "background-color:#225091;padding-top:40px;padding-bottom:40px;"
+           )
+  ),
+  tabPanel(title = "weight Triming",
+    card(
         card_header("Weight Trimming"),
         fileInput("file_trim", "Upload original survey data"),
         uiOutput("dynamic_selectbox_weight_trim"),
@@ -114,16 +403,159 @@ ui <- page_navbar(
         uiOutput("dynamic_selectbox_stratm_trim"),
         uiOutput("dynamic_selectbox_ssu_trim"),
         numericInput("trim_upper_factor", "Trim upper factor (multiplier of mean weight):", value = 3, min = 1, step = 0.5),
-        checkboxInput("trim_nest", "Use nested design", value = TRUE),
+        # checkboxInput("trim_nest", "Use nested design", value = TRUE),
         actionButton("do_trim", "Apply Trimming"),
         tableOutput("trimmed_results"),
-        downloadButton("download_trimmed", "Download Trimmed Data")
-      )
-    ),
+        downloadButton("download_trimmed", "Download Trimmed Data"),
+        br(),
+        textOutput("nest_flag_text"),
+        br(),
+        plotOutput("trimmed_plot", height = "300px"),
+      ),
+      br(),
+           fluidRow(align="center",
+                    span(htmlOutput("bannertext_5", style="color:white;font-family: sans-serif, Helvetica Neue, Arial;
+  letter-spacing: 0.3px;font-size:18px")),
+                    #span(htmlOutput("sharetext", style="color:white")),
+                    #br(),
+                    #img(src='bottomlogo.png', height="20%", width="20%"),
+                    h5("Share on", style="color:white;font-size:12px"),
+                    actionButton("twitter_index",
+                                 label = "",
+                                 icon = icon("twitter"),
+                                 onclick = sprintf("window.open('%s')", url1),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("fb_index",
+                                 label = "",
+                                 icon = icon("facebook"),
+                                 onclick = sprintf("window.open('%s')", url2),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    #actionButton("ins_index",
+                    #             label = "",
+                    #             icon = icon("instagram"),
+                    #             onclick = sprintf("window.open('%s')", url3),
+                    #             style = "border-color: #FFFFFF;"),
+                    actionButton("linkedin_index",
+                                 label = "",
+                                 icon = icon("linkedin"),
+                                 onclick = sprintf("window.open('%s')", url4),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("whats_index",
+                                 label = "",
+                                 icon = icon("whatsapp"),
+                                 onclick = sprintf("window.open('%s')", url6),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("email_index",
+                                 label = "",
+                                 icon = icon("envelope"),
+                                 onclick = sprintf("window.open('%s')", url5),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    style = "background-color:#225091;padding-top:40px;padding-bottom:40px;"
+                    
+           )
+    
+  ),
+  tabPanel(title = "About Us",
+           fluidRow(column(10, offset = 1, h2("About Us")),
+                    column(10, offset = 1, div(img(src = "msph-n-bios2.JPG", height = "100%",width = "100%"),
+                                               style="text-align: center;")),
+                    column(10, offset = 1,helpText("MSPH photo source: https://globalcenters.columbia.edu/content/yusuf-hamied-fellowships-program")),
+                    column(10, offset = 1,span(htmlOutput("abouttext",style = "font-size: 15px; line-height:150%"))),
+                    column(10, offset = 1,span(htmlOutput("abouttext2",style = "font-size: 15px; line-height:150%")))),
+           br(),
+           fluidRow(align="center",
+                    span(htmlOutput("bannertext_6", style="color:white;font-family: sans-serif, Helvetica Neue, Arial;
+  letter-spacing: 0.3px;font-size:18px")),
+                    #span(htmlOutput("sharetext", style="color:white")),
+                    #br(),
+                    #img(src='bottomlogo.png', height="20%", width="20%"),
+                    h5("Share on", style="color:white;font-size:12px"),
+                    actionButton("twitter_index",
+                                 label = "",
+                                 icon = icon("twitter"),
+                                 onclick = sprintf("window.open('%s')", url1),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("fb_index",
+                                 label = "",
+                                 icon = icon("facebook"),
+                                 onclick = sprintf("window.open('%s')", url2),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    #actionButton("ins_index",
+                    #             label = "",
+                    #             icon = icon("instagram"),
+                    #             onclick = sprintf("window.open('%s')", url3),
+                    #             style = "border-color: #FFFFFF;"),
+                    actionButton("linkedin_index",
+                                 label = "",
+                                 icon = icon("linkedin"),
+                                 onclick = sprintf("window.open('%s')", url4),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("whats_index",
+                                 label = "",
+                                 icon = icon("whatsapp"),
+                                 onclick = sprintf("window.open('%s')", url6),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("email_index",
+                                 label = "",
+                                 icon = icon("envelope"),
+                                 onclick = sprintf("window.open('%s')", url5),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    style = "background-color:#225091;padding-top:40px;padding-bottom:40px;"
+                    
+           ))
   )
-)
+
+## server
 
 server <- function(input, output) {
+  
+  shinyjs::addClass(id = "menus", class = "navbar-right")
+
+  output$Hometext <- renderUI({
+    HTML(paste0("This is a weighting application developed by the <a href='https://www.publichealth.columbia.edu/'>Columbia University Mailman School of Public Health</a> team. 
+                This application allows users to upload their datasets and perform various weighting adjustments, including inverse propensity score weighting, propensity score stratification, CHAID algorithm, CART, BART, and XGBoost methods. 
+                Users can select categorical variables, response variables, and weight variables from their uploaded datasets to conduct the analysis. 
+                The application also provides options for post-stratification adjustments based on selected variables. 
+                Users can choose parameters based on their sampling methods, such as stratification, clustering, weights, and population-level adjustments. 
+                The results of the weighting adjustments and post-stratification can be viewed in tables and downloaded for further analysis. 
+                This tool is designed to facilitate data analysis and improve the accuracy of survey results through appropriate weighting techniques."))
+  })
+  
+   output$bannertext = renderText({
+    return(
+      "studying weighting methods for survey data analysis"
+    )
+  })
+
+  output$bannertext_2 = renderText({
+    return(
+      "studying weighting methods for survey data analysis"
+    )
+  })
+
+  output$bannertext_3 = renderText({
+    return(
+      "studying weighting methods for survey data analysis"
+    )
+  })
+
+  output$bannertext_4 = renderText({
+    return(
+      "studying weighting methods for survey data analysis"
+    )
+  })
+
+  output$bannertext_5 = renderText({
+    return(
+      "studying weighting methods for survey data analysis"
+    )
+  })
+
+    output$bannertext_6 = renderText({
+    return(
+      "studying weighting methods for survey data analysis"
+    )
+  })
 
   data_input <- reactive({
     req(input$file)  # make sure a file is uploaded
@@ -166,7 +598,7 @@ server <- function(input, output) {
     req(data_input())
     selectInput(
       "selectGroup_2",
-      "Select weight variables:",
+      "Select weight variables if applicable:",
       choices = c("Null", names(data_input())),
       selected = "Null" # default selection
     )
@@ -196,6 +628,145 @@ server <- function(input, output) {
     }
   })
 
+  vals <- reactiveValues(results = NULL, objects = NULL)
+
+  # observeEvent(input$show_table, {
+  #     # Precompute all results
+  #     vals$results <- list(
+  #       "Inverse Propensity Score" = propensity_score_glm(
+  #         data = data_input(),
+  #         response_var   = input$selectGroup,
+  #         weight_var     = input$selectGroup_2,
+  #         categorical_vars = input$checkGroup,
+  #         continuous_vars = input$checkGroup_2
+  #       ),
+  #       "Propensity score stratification" = propensity_score_stratification(
+  #         data = data_input(),
+  #         response_var   = input$selectGroup,
+  #         weight_var     = input$selectGroup_2,
+  #         categorical_vars = input$checkGroup,
+  #         continuous_vars = input$checkGroup_2
+  #       ),
+  #       "CHAID algorithm" = chaid_method(
+  #         data = data_input(),
+  #         response_var   = input$selectGroup,
+  #         weight_var     = input$selectGroup_2,
+  #         categorical_vars = input$checkGroup
+  #       )[["data"]],
+  #       "classification and regression trees (CART)" = CART_method(
+  #         data = data_input(),
+  #         response_var   = input$selectGroup,
+  #         weight_var     = input$selectGroup_2,
+  #         categorical_vars = input$checkGroup
+  #       )[["data"]],
+  #       "BART package" = BART_method(
+  #         data = data_input(),
+  #         response_var   = input$selectGroup,
+  #         weight_var     = input$selectGroup_2,
+  #         categorical_vars = input$checkGroup,
+  #         continuous_vars = input$checkGroup_2
+  #       )[["data"]],
+  #       "xgboost package" = xgboost_method(
+  #         data = data_input(),
+  #         response_var   = input$selectGroup,
+  #         weight_var     = input$selectGroup_2,
+  #         categorical_vars = input$checkGroup,
+  #         continuous_vars = input$checkGroup_2
+  #       )[["data"]]
+  #     )
+
+  #     vals$objects = list(
+  #       "CHAID algorithm" = chaid_method(
+  #         data = data_input(),
+  #         response_var   = input$selectGroup,
+  #         weight_var     = input$selectGroup_2,
+  #         categorical_vars = input$checkGroup
+  #       )[["chaid_model"]],
+  #       "classification and regression trees (CART)" = CART_method(
+  #         data = data_input(),
+  #         response_var   = input$selectGroup,
+  #         weight_var     = input$selectGroup_2,
+  #         categorical_vars = input$checkGroup
+  #       )[["cart_model"]],
+  #       "BART package" = BART_method(
+  #         data = data_input(),
+  #         response_var   = input$selectGroup,
+  #         weight_var     = input$selectGroup_2,
+  #         categorical_vars = input$checkGroup,
+  #         continuous_vars = input$checkGroup_2
+  #       )[["bart_model"]],
+  #       "xgboost package" = xgboost_method(
+  #         data = data_input(),
+  #         response_var   = input$selectGroup,
+  #         weight_var     = input$selectGroup_2,
+  #         categorical_vars = input$checkGroup,
+  #         continuous_vars = input$checkGroup_2
+  #       )[["xgboost_model"]]
+  #     )
+  #   })
+
+  observeEvent(input$show_table, {
+  # 整合方法调用
+  method_results <- list(
+      "Inverse Propensity Score" = propensity_score_glm(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup,
+        continuous_vars = input$checkGroup_2
+      ),
+      "Propensity score stratification" = propensity_score_stratification(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup,
+        continuous_vars = input$checkGroup_2
+      ),
+      "CHAID algorithm" = chaid_method(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup
+      ),
+      "classification and regression trees (CART)" = CART_method(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup
+      ),
+      "BART package" = BART_method(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup,
+        continuous_vars = input$checkGroup_2
+      ),
+      "xgboost package" = xgboost_method(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup,
+        continuous_vars = input$checkGroup_2
+      )
+    )
+
+    vals$results <- list(
+      "Inverse Propensity Score" = method_results[["Inverse Propensity Score"]],
+      "Propensity score stratification" = method_results[["Propensity score stratification"]],
+      "CHAID algorithm" = method_results[["CHAID algorithm"]][["data"]],
+      "classification and regression trees (CART)" = method_results[["classification and regression trees (CART)"]][["data"]],
+      "BART package" = method_results[["BART package"]][["data"]],
+      "xgboost package" = method_results[["xgboost package"]][["data"]]
+    )
+
+    vals$objects <- list(
+      "CHAID algorithm" = method_results[["CHAID algorithm"]][["chaid_model"]],
+      "classification and regression trees (CART)" = method_results[["classification and regression trees (CART)"]][["cart_model"]],
+      "BART package" = method_results[["BART package"]][["bart_model"]],
+      "xgboost package" = method_results[["xgboost package"]][["xgboost_model"]]
+    )
+  })
+
   output$method_description <- renderText({
     if (input$select_weighting == "Inverse Propensity Score") {
       "The inverse response propensity weighting by fitting a conventional logistic regression model"
@@ -215,6 +786,49 @@ server <- function(input, output) {
     }
   })
   
+  # observeEvent(input$show_table_result, {
+  #     output$weighting_results <- renderTable({
+  #       req(input$select_weighting)
+  #       head(vals$results[[input$select_weighting]], 10)
+  #     })
+  #   }
+  # )
+
+  output$chaid_warning_btn <- renderUI({
+    if (input$select_weighting == "CHAID algorithm") {
+      actionButton("show_warning", "warning", class = "btn-sm", style = "margin-left: 10px; height: 35px;")
+    }
+    # 如果不是CHAID就不显示
+  })
+
+  observeEvent(input$show_warning, {
+      showModal(modalDialog(
+        title = "warning for a CHAID algorithm",
+        p("explaination", strong(" 'Freq' "), "..."),
+        footer = modalButton("close"),
+        easyClose = TRUE 
+      ))
+    })
+
+  table_open <- reactiveVal(FALSE)
+
+  observeEvent(input$show_table_result, {
+    # 翻转开关
+    table_open(!table_open())
+    # 改变按钮的文字
+    if (table_open()) {
+      updateActionButton(inputId = "show_table_result", label = "Close Table")
+    } else {
+      updateActionButton(inputId = "show_table_result", label = "Show Table")
+    }
+  })
+
+  output$weighting_results <- renderTable({
+    req(table_open())
+    # 表格数据
+    head(vals$results[[input$select_weighting]], 10)
+  })
+
   output$data_table <- renderTable({
     req(data_input())
     head(data_input(), 10)  
@@ -224,49 +838,251 @@ server <- function(input, output) {
     summary(data_input())
   })
 
-  observeEvent(input$show_table, {
-  output$weighting_results <- renderTable({
-    if(input$select_weighting == "Inverse Propensity Score") {
-      
-      # result  = propensity_score_glm(data = data_input(), response_var = input$selectGroup, 
-      # weight_var = input$selectGroup_2, categorical_vars = input$checkGroup, continuous_vars = input$checkGroup_2)
+  plot_open <- reactiveVal(FALSE)
 
-      head(propensity_score_glm(data = data_input(), response_var = input$selectGroup, weight_var = input$selectGroup_2, 
-      categorical_vars = input$checkGroup, continuous_vars = input$checkGroup_2), 10)
-
-    } else if (input$select_weighting == "Propensity score stratification") {
-      head(propensity_score_stratification(data = data_input(), response_var = input$selectGroup, 
-      weight_var = input$selectGroup_2, categorical_vars = input$checkGroup, 
-      continuous_vars = input$checkGroup_2), 10)
-
-    } else if (input$select_weighting == "CHAID algorithm") {
-      head(chaid_method(data = data_input(), response_var = input$selectGroup, 
-      weight_var = input$selectGroup_2, categorical_vars = input$checkGroup), 10)
-
-    } else if (input$select_weighting == "classification and regression trees (CART)") {
-      head(CART_method(data = data_input(), response_var = input$selectGroup, 
-      weight_var = input$selectGroup_2, categorical_vars = input$checkGroup), 10)
-
-    } else if (input$select_weighting == "BART package") {
-      head(BART_method(data = data_input(), response_var = input$selectGroup, 
-      weight_var = input$selectGroup_2, categorical_vars = input$checkGroup, continuous_vars = input$checkGroup_2), 10)
-
-    } else if (input$select_weighting == "xgboost package") {
-      head(xgboost_method(data = data_input(), response_var = input$selectGroup, 
-      weight_var = input$selectGroup_2, categorical_vars = input$checkGroup, continuous_vars = input$checkGroup_2), 10)
-
+  observeEvent(input$show_plot_result, {
+    # 翻转开关
+    plot_open(!plot_open())
+    # 改变按钮的文字
+    if (plot_open()) {
+      updateActionButton(inputId = "show_plot_result", label = "Close Plot")
     } else {
-       stop("something went wrong")
+      updateActionButton(inputId = "show_plot_result", label = "Show Plot")
     }
   })
-})
 
-  # output$weighting_plot = renderPlot(
-  #   result  = propensity_score_glm(data = data_input(), response_var = input$selectGroup, 
-  #   weight_var = input$selectGroup_2, categorical_vars = input$checkGroup, continuous_vars = input$checkGroup_2),
 
-  #   plot(result$chaid_model)
-  # )
+  # plotting using only the first result table
+  output$weighting_plot <- renderPlot({
+      req(plot_open())
+      req(vals$results)
+      df <- vals$results[[input$select_weighting]]
+      req(is.data.frame(df), nrow(df) > 0, ncol(df) >= 2)
+
+      sec_last_name <- names(df)[ncol(df) - 1]
+      last_name     <- names(df)[ncol(df)]
+      df$.idx <- seq_len(nrow(df))
+
+      validate(need(is.numeric(df[[last_name]]), "The last column must be numeric to draw a histogram."))
+      
+      # figure 1: second last column with line at 1
+      p1 <- ggplot(df, aes(x = .idx, y = .data[[sec_last_name]])) +
+        geom_line() +
+        geom_hline(yintercept = 1, linetype = "dashed") +
+        labs(title = paste0("Line plot of ", sec_last_name, " with reference line at 1"),
+            x = "Row index", y = sec_last_name) +
+        theme_classic()
+
+      # figure 2: last column vs weight (if exists)
+      wname <- input$selectGroup_2
+      has_weight_col <- !is.null(wname) && wname != "Null" && wname %in% names(df)
+
+      if (has_weight_col) {
+        p2 <- ggplot(df, aes(x = .idx)) +
+          geom_line(aes(y = .data[[last_name]], color = "last_col")) +
+          geom_line(aes(y = .data[[wname]],     color = "weight")) +
+          scale_color_manual(
+            name   = "Variable",
+            values = c("last_col" = "steelblue", "weight" = "tomato"),
+            labels = c("last_col" = last_name, "weight" = wname)
+          ) +
+          labs(title = paste0("Line plots of ", last_name, " (solid) and ", wname, " (dashed)"),
+              x = "Row index", y = "Value") +
+          theme_classic()
+      } else {
+        p2 <- ggplot(df, aes(x = .idx, y = .data[[last_name]])) +
+          geom_line() +
+          labs(title = paste0("Line plot of ", last_name),
+              subtitle = "(Weight column not found in result table)",
+              x = "Row index", y = last_name) +
+          theme_classic()
+      }
+
+     # Left plot (for sec_last_name), with a reversed x-axis to point left
+        p_left <- ggplot(df, aes(x = .data[[sec_last_name]])) +
+          geom_histogram(bins = 30, color = "white", fill = "salmon") +
+          scale_x_reverse() + # This flips the axis
+          labs(x = sec_last_name, y = "Count") +
+          theme_classic()
+
+      # Right plot (for last_name), with y-axis labels removed for alignment
+        p_right <- ggplot(df, aes(x = .data[[last_name]])) +
+          geom_histogram(bins = 30, color = "white", fill = "skyblue") +
+          labs(x = last_name, y = "Count") + # Y-axis title is not needed
+          theme_classic() +
+          theme(
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank(),
+            axis.title.y = element_blank()
+          )
+
+       library(patchwork)
+
+      # Combine the two histograms side-by-side with a shared title
+        combined_hist <- p_left + p_right +
+          plot_annotation(
+            title = "Comparison of Distributions",
+            theme = theme(plot.title = element_text(hjust = 0.5))) 
+
+      
+      # df_long <- df %>%
+      #   pivot_longer(cols = c(sec_last_name, last_name),
+      #               names_to = "variable", values_to = "value")
+
+      # combined_hist = 
+      #   ggplot(df_long, aes(x = value, fill = variable)) +
+      #     geom_histogram(bins = 30, color = "white") +
+      #     facet_wrap(~ variable, scales = "free_x") +
+      #     labs(x = NULL, y = "Count") +
+      #     theme_classic()
+      
+      p1 / p2 / combined_hist
+    })
+
+
+# # --- Render the Analysis Plot (Coefficient Plot) ---
+#   output$analysis_plot <- renderPlot({
+#     # 1. This plot will only render after the main results are calculated
+#     #    by pressing the "Show Table" button. We use vals$results as a trigger.
+#     req(vals$results)
+    
+#     # 2. Get the data and selected variables
+#     data <- data_input()
+#     response_var <- input$selectGroup
+#     # Combine selected categorical and continuous variables into one list of predictors
+#     predictor_vars <- c(input$checkGroup, input$checkGroup_2)
+    
+#     # Ensure the response variable is not in the predictor list
+#     predictor_vars <- predictor_vars[predictor_vars != response_var]
+    
+#     # Validate that at least one predictor is selected
+#     validate(
+#       need(length(predictor_vars) > 0, "Please select at least one predictor variable (categorical or continuous).")
+#     )
+
+#     # 3. Build the logistic regression formula dynamically
+#     #    Formula will look like: response_var ~ predictor1 + predictor2 + ...
+#     formula_str <- paste(response_var, "~", paste(predictor_vars, collapse = " + "))
+#     model_formula <- as.formula(formula_str)
+
+#     # 4. Fit the logistic regression model
+#     #    The `tryCatch` block prevents the app from crashing if the model fails to converge
+#     model <- tryCatch({
+#       glm(model_formula, data = data, family = binomial(link = "logit"))
+#     }, error = function(e) {
+#       # If model fails, return NULL
+#       NULL
+#     })
+
+#     # 5. Check if the model was fitted successfully
+#     validate(
+#       need(!is.null(model), "Model could not be fitted. Please check if variables are appropriate (e.g., response variable should be binary).")
+#     )
+
+#     # 6. Create the coefficient plot using the 'dotwhisker' package
+#     dwplot(model) +
+#       geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
+#       labs(
+#         title = "Coefficient Plot for Logistic Regression",
+#         subtitle = paste("Response Variable:", response_var),
+#         x = "Coefficient Estimate",
+#         y = "Predictor Variable"
+#       ) +
+#       theme_minimal_grid() + # A clean theme from dotwhisker
+#       coord_flip()
+#   })
+
+  analysis_plot_open <- reactiveVal(FALSE)
+
+  observeEvent(input$show_analysis_plot, {
+    # 翻转开关
+    analysis_plot_open(!analysis_plot_open())
+    # 改变按钮的文字
+    if (analysis_plot_open()) {
+      updateActionButton(inputId = "show_analysis_plot", label = "Close Plot")
+    } else {
+      updateActionButton(inputId = "show_analysis_plot", label = "Show Plot")
+    }
+  })
+
+  output$analysis_plot <- renderPlot({
+    req(analysis_plot_open)
+    req(vals$objects)
+    if (input$select_weighting == "CHAID algorithm") {
+      chaid_model <- vals$objects[["CHAID algorithm"]]
+      validate(need(!is.null(chaid_model), "CHAID model is not available."))
+      plot(chaid_model)
+    } else if (input$select_weighting == "classification and regression trees (CART)") {
+       cart_model = vals$objects[["classification and regression trees (CART)"]]
+
+      validate(
+         need(!is.null(cart_model) && inherits(cart_model, "rpart"), 
+              "CART model is not available or is not a valid rpart object.")
+       )
+
+       rpart.plot(cart_model, 
+           main = "CART Decision Tree",
+           box.palette = "Blues", 
+           shadow.col = "gray",
+           yesno = 2
+          ) 
+    } else if (input$select_weighting == "BART package") {
+      bart_model = vals$objects[["BART package"]]
+      importance <- apply(bart_model$varcount, 2, mean)
+
+      imp_df <- data.frame(
+        variable = names(importance),
+        importance = as.numeric(importance)
+      )
+
+      ggplot(imp_df, aes(x = reorder(variable, importance), y = importance)) +
+      geom_bar(stat = "identity", fill = "grey") +
+      coord_flip() +
+      labs(title = "BART Variable Importance", y = "Importance") +
+      theme_classic() +
+      theme(axis.text.y = element_text(size = 12))
+      # barplot(importance, main="BART Variable Importance", las=2)
+    } else if (input$select_weighting == "xgboost package") {
+      xgb_model = vals$objects[["xgboost package"]]
+      xgb.plot.importance(xgb.importance(model = xgb_model))
+    }
+    else {
+      plot.new()
+      text(0.5, 0.5, "There is no picture here for this method", cex = 1.2)
+    }
+    
+  })
+
+  compare_open <- reactiveVal(FALSE)
+
+  observeEvent(input$show_compare_plot, {
+    # 翻转开关
+    compare_open(!compare_open())
+    # 改变按钮的文字
+    if (compare_open()) {
+      updateActionButton(inputId = "show_compare_plot", label = "Close Plot")
+    } else {
+      updateActionButton(inputId = "show_compare_plot", label = "Show Plot")
+    }
+  })
+
+  output$compare_plot <- renderPlot({
+    req(compare_open)
+    req(vals$results)
+    
+    
+  })
+
+  output$download_weighting_table <- downloadHandler(
+      filename = function() {
+        paste0("nonres_table_", Sys.Date(), ".csv")
+      },
+      content = function(file) {
+        write_csv(vals$results[[input$select_weighting]], file)
+      }
+    )
+
+
 
   data_input_post <- reactive({
     req(input$file_post)  # make sure a file is uploaded
@@ -299,7 +1115,7 @@ server <- function(input, output) {
   output$dynamic_selectbox_weight_post <- renderUI({
     selectInput(
       "select_weight_post",
-      "Select weight variables:",
+      "Select weight variables",
       choices = c("NULL", names(data_input_post())),
       selected = "NULL" # default selection
     )
@@ -332,7 +1148,6 @@ server <- function(input, output) {
     )
   })
 
-  
 
   output$sampling_method_description <- renderText({
     sampling_lines <- c()
@@ -358,6 +1173,28 @@ server <- function(input, output) {
     # }
 
     paste(sampling_lines, collapse = "\n")
+  })
+
+  observeEvent(input$show_ps_example, {
+    showModal(modalDialog(
+      title = "example for a Post-stratification Table",
+      
+     
+      p("explaination", strong(" 'Freq' "), "..."),
+      
+      renderTable({
+        
+        data.frame(
+          gender = c("male", "male", "male", "female", "female", "female"),
+          age_grp = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
+          educ = c("college", "high school", "college", "high school", "college", "high school"),
+          Freq = c(15000, 22000, 18000, 16000, 24000, 20000)
+        )
+      }),
+      
+      footer = modalButton("close"),
+      easyClose = TRUE 
+    ))
   })
 
   post_strat_data <- reactive({
@@ -395,9 +1232,84 @@ server <- function(input, output) {
     df
   })
 
+   observeEvent(input$show_post_strat_table, {
+    output$post_strat_results_ui <- renderUI({
+      tableOutput("post_strat_results")
+    })
+  })
+
   output$post_strat_results <- renderTable({
     head(post_strat_data(), 10)
   })
+
+  output$post_strat_plot <- renderPlot({
+    req(post_strat_data())   
+
+    df <- post_strat_data() |> 
+      arrange(desc(weight))  |> 
+      mutate(order_id = row_number())
+
+    p1 <- ggplot(df) +
+      geom_histogram(aes(x = post_strat_weight), 
+                    fill = "skyblue", alpha = 0.5, bins = 30) +
+      labs(title = "Distribution of Post-stratification Weights",
+           x = "Post-stratification Weight",
+           y = "Count") +
+      theme_minimal()
+
+    # p2
+
+    p2 <- ggplot(df, aes(x = order_id)) +
+      geom_line(aes(y = weight,      color = "Original", linewidth = 1.4)) +
+      geom_line(aes(y = post_strat_weight,    color = "Post-stratified", linewidth = 0.4)) +
+      scale_color_manual(
+        name = "Series",
+        values = c("Original" = "red", "Post-stratified" = "skyblue")
+      ) +
+      labs(
+        title = "Weights Sorted by Original (Descending)",
+        x = "Rank (by original; largest → smallest)",
+        y = "Weight"
+      ) +
+      theme_minimal()
+
+    library(patchwork)
+    p1 | p2
+  })
+
+output$population_dist_plot <- renderPlot({
+    # req(data_input_population())
+    # req(post_strat_data())
+    # pop_data <- data_input_population()
+    
+    # df <- post_strat_data() |> 
+    #   arrange(desc(weight))  |> 
+    #   mutate(order_id = row_number())
+
+    # names_pop <- names(pop_data)
+    # names_survey <- names(df)
+
+    # common_vars <- intersect(names_pop, names_survey)
+
+    # plot_list <- lapply(common_vars, function(var_name) {
+    #   ggplot(df, aes(x = .data[[var_name]], y = .data[[freq_col_name]])) +
+        
+    #     geom_col(fill = "#0d6efd", alpha = 0.8) +
+    #     labs(
+    #       title = paste("按 '", var_name, "' 划分的分布", sep = ""),
+    #       x = var_name,
+    #       y = weight
+    #     ) +
+    #     theme_minimal(base_size = 14) +
+    #     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    # })
+
+    # library(patchwork)
+    # wrap_plots(plot_list, ncol = 3)
+  })
+
+
+
 
   output$download_post_strat <- downloadHandler(
   filename = function() {
@@ -414,7 +1326,7 @@ data_input_trim <- reactive({
   })
 
   output$dynamic_selectbox_weight_trim <- renderUI({
-    selectInput("select_weight_trim", "Select weight variable:",
+    selectInput("select_weight_trim", "Select weight variables:",
                 choices = names(data_input_trim()), selected = names(data_input_trim())[1])
   })
 
@@ -444,6 +1356,36 @@ data_input_trim <- reactive({
       ~1
     }
 
+    nest_flag <- {
+      # Case 1: two-stage (PSU + SSU) provided → check if SSU repeats across PSUs
+      if (input$select_trim_cluster != "NULL" && input$select_trim_ssu != "NULL") {
+        df0 <- data_input_trim()
+
+        # Ensure the two ID columns exist
+        stopifnot(input$select_trim_cluster %in% names(df0),
+                  input$select_trim_ssu     %in% names(df0))
+
+        # Is the same SSU used in more than one PSU?
+        dup_check <- df0 %>%
+          dplyr::distinct(!!rlang::sym(input$select_trim_cluster), !!rlang::sym(input$select_trim_ssu)) %>%
+          dplyr::count(!!rlang::sym(input$select_trim_ssu)) %>%
+          dplyr::filter(n > 1)
+
+        # If SSU repeats across PSUs → must be nested
+        if (nrow(dup_check) > 0) TRUE else FALSE
+
+      # Case 2: only PSU (one-stage cluster) or no cluster (ids=~1) → nest not meaningful
+      } else {
+        FALSE
+      }
+    }
+
+    if (nest_flag) {
+      output$nest_flag_text <- renderText("Note: Based on the selected cluster and SSU variables, a nested design (nest = TRUE) will be used.")
+    } else {
+      output$nest_flag_text <- renderText("Note: Based on the selected cluster and SSU variables, a non-nested design (nest = FALSE) will be used.")
+    }
+
     strata_formula <- if (input$select_trim_stratm != "NULL") as.formula(paste0("~", input$select_trim_stratm)) else NULL
     weight_formula <- as.formula(paste0("~", input$select_weight_trim))
 
@@ -452,14 +1394,24 @@ data_input_trim <- reactive({
       ids = ids_formula,
       strata = strata_formula,
       weights = weight_formula,
-      nest = input$trim_nest
+      # nest = input$trim_nest
+      nest = nest_flag
     )
 
-    trimmed_design <- trimWeights(design, upper = input$trim_upper_factor * mean(weights(design)), strict = TRUE)
-    new_weights <- weights(trimmed_design)
+    cutoff <- input$trim_upper_factor * mean(weights(design), na.rm = TRUE)
 
-    df <- data_input_trim()
-    df$trimmed_weight <- new_weights
+    trimmed_design <- trimWeights(design, upper = cutoff, strict = TRUE)
+    new_weights <- as.numeric(weights(trimmed_design))
+
+    df <- data_input_trim() %>%
+      mutate(
+        .row_id         = dplyr::row_number(),
+        original_weight = .data[[input$select_weight_trim]],
+        trimmed_weight  = new_weights,
+        trim_cutoff     = cutoff,
+        was_trimmed     = (original_weight > cutoff) 
+      )
+
     df
   })
 
@@ -474,15 +1426,72 @@ data_input_trim <- reactive({
     },
     content = function(file) {
       write_csv(trimmed_data(), file)
-    }
+    })
+
+  output$trimmed_plot <- renderPlot({
+    req(trimmed_data())   
+
+    df <- trimmed_data() |> 
+      # arrange(desc(original_weight))  |> 
+      mutate(order_id = row_number())
+
+    cutoff <- unique(df$trim_cutoff)
+    
+    # hist(df$weight, main = "Distribution after Trimming", 
+    #     xlab = "Weight", col = "skyblue", border = "white")
+    
+    p1 <- ggplot(df) +
+      geom_histogram(aes(x = original_weight), 
+                    fill = "skyblue", alpha = 0.5, bins = 30) +
+      geom_histogram(aes(x = trimmed_weight), 
+                    fill = "orange", alpha = 0.5, bins = 30) +
+      geom_vline(xintercept = cutoff, linetype = "dashed", color = "red") +
+      labs(title = "Distribution of Weights (Before vs After Trimming)",
+          x = "Weight", y = "Count") +
+      theme_minimal()
+
+    p2 <- ggplot(df, aes(x = order_id, y = trimmed_weight)) +
+      geom_line(color = "grey40") +
+      geom_point(aes(color = was_trimmed, shape = was_trimmed), size = 2) +
+      scale_color_manual(values = c("FALSE" = "black", "TRUE" = "red")) +
+      labs(title = paste0("Trimmed Weights (cutoff = ", round(cutoff,2), ")"),
+          x = "Units",
+          y = "Weight after trimming",
+          color = "Was trimmed", shape = "Was trimmed") +
+      theme_minimal()
+
+    # p3
+
+    df_sorted <- df |>
+      arrange(desc(original_weight)) |>
+      mutate(rank_by_orig = row_number())
+
+    cross_idx <- which(df_sorted$original_weight <= cutoff)[1]
+    cross_point <- data.frame(
+      x = df_sorted$rank_by_orig[cross_idx],
+      y = cutoff
 )
+    p3 <- ggplot(df_sorted, aes(x = rank_by_orig)) +
+      geom_line(aes(y = original_weight, color = "Original")) +
+      geom_line(aes(y = trimmed_weight,  color = "Trimmed")) +
+      geom_hline(yintercept = cutoff, linetype = "dashed", color = "red") +
+      geom_point(data = cross_point, aes(x = x, y = y), color = "red", size = 3) +
+      geom_text(data = cross_point,
+                aes(x = x, y = y, label = paste0("x=", x)),
+                vjust = -1, color = "red") +
+      scale_color_manual(
+        name   = "Series",
+        values = c("Original" = "steelblue", "Trimmed" = "green")
+      ) +
+      labs(title = "Weights Sorted by Original Weight",
+          x = "Rank (by original weight)", y = "Weight") +
+      theme_minimal()
 
+    library(patchwork)
+    p1 | p2 | p3 
+  })
 }
-
 
 shinyApp(ui = ui, server = server)
 
 
-# uploda data
-# graph useful weights before and after trimming
-# calibration (question mark : difference)

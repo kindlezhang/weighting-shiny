@@ -1,0 +1,167 @@
+---
+title: "super learner"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, error = FALSE)
+library(SuperLearner)
+library(rpart)      # CART
+library(xgboost)    # XGBoost
+library(ranger)
+library(tidyverse)
+```
+
+```{r}
+# Install remotes first:
+# install.packages("remotes")
+# remotes::install_github("ecpolley/SuperLearner")
+```
+
+```{r}
+SL.bart <- function(Y, X, newX, family, ...) {
+  require(dbarts)
+  fit <- dbarts::bart(x.train = as.matrix(X), y.train = Y, x.test = as.matrix(newX))
+  pred <- as.vector(fit$yhat.test.mean)  
+  out <- list(pred = pred, fit = fit)
+  class(out$fit) <- "bart"
+  return(out)
+}
+```
+
+```{r}
+data <- read_csv("weighting/data/example.csv")
+
+data <- data[, -1]  |>
+  select(c(age_grp, gender, race, citizen, educ, marital, BMI, response))
+
+outcome <- data$response
+
+# Create a dataframe to contain our explanatory variables.
+data <- subset(data, select = -response)
+
+# Check structure of our dataframe.
+str(data)
+# Review our dimensions.
+dim(data)
+```
+
+```{r}
+listWrappers()
+```
+
+```{r}
+tune = list(cp = c(0.01, 0.001, 0.0005),
+            maxdepth = c(5, 10, 15),
+            minsplit = c(3, 4, 5))
+
+learners = create.Learner("SL.rpart", tune = tune, detailed_names = FALSE, name_prefix = "rpart")
+
+learners$names
+```
+
+```{r}
+sl <- 
+  SuperLearner(Y = outcome, X = data, family = binomial(),
+    SL.library = c("SL.mean", "SL.glm", "SL.rpart", "SL.ranger", "SL.xgboost"))
+
+# Review how long it took to run the SuperLearner:
+sl$times$everything
+```
+
+```{r}
+(num_cores = RhpcBLASctl::get_num_cores())
+
+# Use 2 of those cores for parallel SuperLearner.
+# Replace "2" with "num_cores" (without quotes) to use all cores.
+options(mc.cores = num_cores)
+
+# Check how many parallel workers we are using (on macOS/Linux).
+getOption("mc.cores")
+```
+
+```{r}
+system.time({
+  # This will take about 2x as long as the previous SuperLearner.
+  cv_sl = CV.SuperLearner(Y = outcome, X = data, family = binomial(),
+                          # For a real analysis we would use V = 10.
+                          V = 5,
+                          SL.library = c("SL.mean", "SL.glm", "SL.rpart", "SL.ranger", "SL.xgboost"))
+})
+```
+
+```{r}
+# We run summary on the cv_sl object rather than simply printing the object.
+summary(cv_sl)
+
+cv_sl$libraryNames
+cv_sl$coef
+```
+
+```{r}
+# Review the distribution of the best single learner as external CV folds.
+table(simplify2array(cv_sl$whichDiscreteSL))
+```
+
+```{r}
+# Plot the performance with 95% CIs (use a better ggplot theme).
+plot(cv_sl) + theme_bw()
+```
+
+```{r}
+set.seed(1, "L'Ecuyer-CMRG")
+
+# While this is running check CPU using in Activity Monitor / Task Manager.
+system.time({
+  cv_sl = CV.SuperLearner(Y = outcome, X = data, family = binomial(),
+                          # For a real analysis we would use V = 10.
+                          V = 5,
+                          parallel = "multicore",
+                          SL.library = c("SL.mean", "SL.glm", learners$names, "SL.ranger", "SL.xgboost"))
+})
+```
+
+```{r}
+# Review results.
+summary(cv_sl)
+```
+
+```{r}
+# Review meta-weights (coefficients) from a CV.SuperLearner object
+review_weights = function(cv_sl) {
+  meta_weights = coef(cv_sl)
+  means = colMeans(meta_weights)
+  sds = apply(meta_weights, MARGIN = 2,  FUN = sd)
+  mins = apply(meta_weights, MARGIN = 2, FUN = min)
+  maxs = apply(meta_weights, MARGIN = 2, FUN = max)
+  # Combine the stats into a single matrix.
+  sl_stats = cbind("mean(weight)" = means, "sd" = sds, "min" = mins, "max" = maxs)
+  # Sort by decreasing mean weight.
+  sl_stats[order(sl_stats[, 1], decreasing = TRUE), ]
+}
+```
+
+```{r}
+print(review_weights(cv_sl), digits = 3)
+```
+
+```{r}
+plot(cv_sl) + theme_bw()
+```
+
+```{r}
+set.seed(1, "L'Ecuyer-CMRG")
+
+# While this is running check CPU using in Activity Monitor / Task Manager.
+system.time({
+  cv_sl = CV.SuperLearner(Y = outcome, X = data, family = binomial(),
+                          # For a real analysis we would use V = 10.
+                          V = 5,
+                          parallel = "multicore",
+                          method = "method.AUC",
+                          SL.library = c("SL.mean", "SL.glm", learners$names, "SL.ranger", "SL.xgboost"))
+})
+
+summary(cv_sl)
+```
+

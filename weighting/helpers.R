@@ -22,10 +22,11 @@ propensity_score_glm <- function(data, response_var, weight_var, categorical_var
   ps_model <- glm(formula, data = data, family = binomial(link = "logit"))
   
   # Calculate propensity scores
-  pw <- predict(ps_model, type = "response")
+  pw <- predict(ps_model, type = response_var)
   data$WT_psw = 1 / pw
-  data$WT_psw[response_var == 0] = 0
-  data$adjW_psw = data$weight * data$WT_psw
+  
+  data$WT_psw[data[[response_var]] == 0] = 0
+  data$adjW_psw = data[[weight_var]] * data$WT_psw
  
   return(data)
 }
@@ -109,14 +110,12 @@ chaid_method = function(data, response_var, weight_var, categorical_vars) {
   data$WT_chaid = 1 / chaid_pw
 
   ## Construct the new weight
-  data$adjW_chaid = data$weight * data$WT_chaid
+  data$adjW_chaid = data[[weight_var]] * data$WT_chaid
   
-  # return(list(
-  #   data = data,
-  #   chaid_model = chaidobj
-  # ))
-
-  return(data)
+  return(list(
+    data = data,
+    chaid_model = chaidobj
+  ))
 }
 
 CART_method = function(data, response_var, weight_var, categorical_vars){
@@ -136,17 +135,29 @@ CART_method = function(data, response_var, weight_var, categorical_vars){
 
   # Create a formula for the model
 
-  formula <- as.formula(paste0("factor(", response_var, " == 1) ~ ", paste(categorical_vars, collapse = " + ")))
+  data$response_factor <- factor(data[[response_var]] == 1, 
+                                 levels = c(FALSE, TRUE), 
+                                 labels = c("No", "Yes"))
+
+  formula <- as.formula(paste0("response_factor ~ ", paste(categorical_vars, collapse = " + ")))
   
-  cart.tree = rpart(formula, data = data, method = "class")
+  cart.tree = rpart(formula, 
+                    data = data, 
+                    method = "class",
+                    model = TRUE,
+                    control = rpart.control(minsplit = 5, cp = 0.0005, maxdepth = 10))
+
 
   ## CART fitted values and assign weights
   cart.fitted = predict(cart.tree, type="prob")
 
-  data$cart.wt = 1/cart.fitted[,2]
+  data$cart.wt = 1/cart.fitted[, "Yes"]
   data$adjW_cart = data[[weight_var]] * data$cart.wt
   
-  return(data)
+  return(list(
+    data = subset(data, select = -c(response_factor)),
+    cart_model = cart.tree
+  ))
 }
 
 BART_method = function(data, response_var, weight_var, categorical_vars, continuous_vars){
@@ -169,17 +180,19 @@ BART_method = function(data, response_var, weight_var, categorical_vars, continu
 
   y_train = bart_data[[response_var]]
   X_train = bart_data[, c(categorical_vars, continuous_vars)]
-
+  
   # use Probit BART
   fit_bart = pbart(x.train = as.data.frame(X_train), y.train = y_train)
- 
+  
   bart_data$WT_probit = 1 / fit_bart$prob.train.mean
   bart_data$WT_probit[response_var == 0] = 0
-
+  
   # Construct the new weight
   bart_data$adjW_probit = bart_data[[weight_var]] * bart_data$WT_probit
-
-  return(bart_data)
+  
+  return(list(
+    data = bart_data,
+    bart_model = fit_bart))
 }
 
 xgboost_method = function(data, response_var, weight_var, categorical_vars, continuous_vars){
@@ -224,5 +237,8 @@ xgboost_method = function(data, response_var, weight_var, categorical_vars, cont
   ## Construct the new weight
   model_data$adjW_xgboost = model_data[[weight_var]] * model_data$WT_xgboost
 
-  return(model_data)
+  return(list(
+    data = model_data,
+    xgboost_model = xgb_fit
+  ))
 }
