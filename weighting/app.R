@@ -10,10 +10,12 @@ library(shinyjs)
 library(dotwhisker)
 library(cowplot)
 library(rpart.plot)
+library(DT)
 
 # load helper functions
 
 source("helpers.R")
+source("superlearner.R")
 
 url1 = "https://twitter.com/intent/tweet?text=Hello%20world&url=https://msph.shinyapps.io/nyc-neighborhoods-covid/"
 url2 = "https://www.facebook.com/sharer.php?u=https://msph.shinyapps.io/nyc-neighborhoods-covid/"
@@ -160,7 +162,7 @@ ui <-
                     style = "background-color:#225091;padding-top:40px;padding-bottom:40px;"
               )
   ),
-  tabPanel(title="Nonresponse adjustment",
+    tabPanel(title="Nonresponse adjustment",
         card(
           card_header("Variable Selection"),
           helpText("Select the categorical variables, response variable, and weight variable from the uploaded dataset."),
@@ -202,11 +204,13 @@ ui <-
                 downloadButton("download_weighting_table", "Download Results")),
           conditionalPanel(
             condition = "input.show_table_result % 2 == 1", 
-            tableOutput("weighting_results")
+            # tableOutput("weighting_results")
+            DT::dataTableOutput("weighting_results")
             ),
           h4("Weighting Adjustment Plot", style = "margin-top: 25px;"),
           div(style = "text-align: left; margin-top: 10px;",
-                actionButton("show_plot_result", "Show Plot", class = "btn-primary")),
+                actionButton("show_plot_result", "Show Plot", class = "btn-primary"),
+                downloadButton("download_weighting_plot", "Download Plots")),
           conditionalPanel(
             condition = "input.show_plot_result % 2 == 1", 
             plotOutput("weighting_plot")
@@ -226,6 +230,100 @@ ui <-
             plotOutput("compare_plot")
             )
           ),
+      br(),
+      fluidRow(align="center",
+                    span(htmlOutput("bannertext_3", style="color:white;font-family: sans-serif, Helvetica Neue, Arial;
+                                      letter-spacing: 0.3px;font-size:18px")),
+                    #span(htmlOutput("sharetext", style="color:white")),
+                    #br(),
+                    #img(src='bottomlogo.png', height="20%", width="20%"),
+                    h5("Share on", style="color:white;font-size:12px"),
+                    actionButton("twitter_index",
+                                 label = "",
+                                 icon = icon("twitter"),
+                                 onclick = sprintf("window.open('%s')", url1),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("fb_index",
+                                 label = "",
+                                 icon = icon("facebook"),
+                                 onclick = sprintf("window.open('%s')", url2),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    #actionButton("ins_index",
+                    #             label = "",
+                    #             icon = icon("instagram"),
+                    #             onclick = sprintf("window.open('%s')", url3),
+                    #             style = "border-color: #FFFFFF;"),
+                    actionButton("linkedin_index",
+                                 label = "",
+                                 icon = icon("linkedin"),
+                                 onclick = sprintf("window.open('%s')", url4),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("whats_index",
+                                 label = "",
+                                 icon = icon("whatsapp"),
+                                 onclick = sprintf("window.open('%s')", url6),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    actionButton("email_index",
+                                 label = "",
+                                 icon = icon("envelope"),
+                                 onclick = sprintf("window.open('%s')", url5),
+                                 style = "border-color: #225091;color: #fff; background-color: #225091;"),
+                    style = "background-color:#225091;padding-top:40px;padding-bottom:40px;"
+           )),
+tabPanel(title="Super Learner",
+        card(
+          card_header("Model Selection"),
+          helpText("Select the method you used and compare them directly"),
+          fluidRow(
+  column(
+    width = 6,
+    checkboxGroupInput(
+      inputId = "selected_methods",
+      label = "Select modeling methods:",
+      choices = c("propensity score", "Cart", "Random Forest", "XGBoost"),
+      selected = NULL
+    ),
+    # 动态显示Cart参数
+    conditionalPanel(
+      condition = "input.selected_methods.indexOf('Cart') > -1",
+      numericInput("rf_ntree", "Number of trees (Cart)", value = 500, min = 10, max = 2000),
+      numericInput("rf_mtry", "mtry (Cart)", value = 3, min = 1, max = 20)
+    )
+  ),
+  column(
+    width = 6,
+    checkboxInput(
+      inputId = "do_cross_validation",
+      label = "Perform cross-validation?",
+      value = TRUE
+    ),
+    conditionalPanel(
+      condition = "input.do_cross_validation",
+      numericInput(
+        inputId = "cv_folds",
+        label = "Number of folds",
+        value = 5,
+        min = 2,
+        max = 20,
+        step = 1
+      )
+    )
+  )
+),
+             div(style = "text-align: left; margin-top: 10px;",
+              actionButton("SL_generate_analysis", "Generate Analysis", class = "btn-primary")
+          )
+        ),
+        card(
+          card_header("training performance"),
+        ),
+        card(
+          card_header("predict performance"),
+          plotOutput("SL_plot")
+        ),
+        card(
+          card_header("Reference"),
+        ),
       br(),
       fluidRow(align="center",
                     span(htmlOutput("bannertext_3", style="color:white;font-family: sans-serif, Helvetica Neue, Arial;
@@ -823,10 +921,12 @@ server <- function(input, output) {
     }
   })
 
-  output$weighting_results <- renderTable({
+  output$weighting_results <- DT::renderDataTable({
     req(table_open())
     # 表格数据
-    head(vals$results[[input$select_weighting]], 10)
+    # head(vals$results[[input$select_weighting]], 10)
+    df <- vals$results[[input$select_weighting]]
+    DT::datatable(df, options = list(pageLength = 10, lengthMenu = c(10, 50, 100)))
   })
 
   output$data_table <- renderTable({
@@ -856,7 +956,11 @@ server <- function(input, output) {
   output$weighting_plot <- renderPlot({
       req(plot_open())
       req(vals$results)
-      df <- vals$results[[input$select_weighting]]
+
+
+      df <- vals$results[[input$select_weighting]]  |> 
+        filter(.data[[input$selectGroup]] != 0)
+      
       req(is.data.frame(df), nrow(df) > 0, ncol(df) >= 2)
 
       sec_last_name <- names(df)[ncol(df) - 1]
@@ -866,12 +970,18 @@ server <- function(input, output) {
       validate(need(is.numeric(df[[last_name]]), "The last column must be numeric to draw a histogram."))
       
       # figure 1: second last column with line at 1
+      yval <- df[[sec_last_name]]
+      upper <- quantile(yval, 0.99, na.rm = TRUE)
+      # upper = 0.5 * (max(yval, na.rm = TRUE)-1) + 1
+
       p1 <- ggplot(df, aes(x = .idx, y = .data[[sec_last_name]])) +
         geom_line() +
         geom_hline(yintercept = 1, linetype = "dashed") +
         labs(title = paste0("Line plot of ", sec_last_name, " with reference line at 1"),
             x = "Row index", y = sec_last_name) +
+        coord_cartesian(ylim = c(min(yval, na.rm = TRUE), upper)) +
         theme_classic()
+
 
       # figure 2: last column vs weight (if exists)
       wname <- input$selectGroup_2
@@ -897,6 +1007,21 @@ server <- function(input, output) {
               x = "Row index", y = last_name) +
           theme_classic()
       }
+
+      # figure 3: new weight vs original weight
+        df_new = df  |> 
+          mutate(difference = .data[[last_name]] - .data[[wname]])  |> 
+          arrange(.data[[wname]])
+
+        p3 <- df_new |> 
+          ggplot(aes(x = .data[[wname]], y = difference)) +
+          geom_segment(aes(x = .data[[wname]], xend = .data[[wname]],
+                     y = min(difference), yend = difference), color = "steelblue") +
+          geom_point(color = "tomato", size = 1) +
+          labs(title = "Difference Vertical Segments",
+          x = "original weight", y = "difference between old and new weight") +
+          theme_classic()
+
 
      # Left plot (for sec_last_name), with a reversed x-axis to point left
         p_left <- ggplot(df, aes(x = .data[[sec_last_name]])) +
@@ -936,7 +1061,7 @@ server <- function(input, output) {
       #     labs(x = NULL, y = "Count") +
       #     theme_classic()
       
-      p1 / p2 / combined_hist
+      p1 / p2 / p3 / combined_hist
     })
 
 
@@ -1082,7 +1207,61 @@ server <- function(input, output) {
       }
     )
 
+  output$download_weighting_plot <- downloadHandler(
+      filename = function() {
+        paste0("nonres_plot_", Sys.Date(), ".jpg")
+      },
+      content = function(file) {
+        jpeg(file, width = 800, height = 600) 
+        print(p1)  
+        dev.off()
+      }
+    )
 
+  # model_params <- reactive({
+  #   params <- list()
+  #   methods <- input$selected_methods
+  
+  #   # 循环生成参数，或者直接针对每种方法
+  #   if ("Cart" %in% methods) {
+  #     params$Cart <- list(
+  #       ntree = input$rf_ntree,
+  #       mtry  = input$rf_mtry
+  #     )
+  #   }
+  #   # 模型如Lasso/Ridge，可增加params$Lasso等
+  #   params$methods_selected <- methods  # 方法名称列表也可以加进去
+
+  #   params
+  # })
+
+  SL_result <- reactiveVal(NULL)
+
+  observeEvent(input$SL_generate_analysis, {
+  # 整合方法调用
+  
+    result = SL_plot(df = data, outcome = input$selectGroup, methods = input$selected_methods)
+    SL_result(result)
+
+  })
+  
+  output$SL_plot = renderPlot({
+    # req(SL_result())
+    # plot_obj <- SL_result()$plot   
+    # plot(plot_obj) + theme_classic()
+  })
+
+
+
+
+
+
+
+
+
+
+
+  
 
   data_input_post <- reactive({
     req(input$file_post)  # make sure a file is uploaded

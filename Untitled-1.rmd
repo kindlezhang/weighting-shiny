@@ -10,6 +10,7 @@ library(rpart)      # CART
 library(xgboost)    # XGBoost
 library(ranger)
 library(tidyverse)
+library(ggplot2)
 ```
 
 ```{r}
@@ -19,18 +20,18 @@ library(tidyverse)
 ```
 
 ```{r}
-SL.bart <- function(Y, X, newX, family, ...) {
-  require(dbarts)
-  fit <- dbarts::bart(x.train = as.matrix(X), y.train = Y, x.test = as.matrix(newX))
-  pred <- as.vector(fit$yhat.test.mean)  
-  out <- list(pred = pred, fit = fit)
-  class(out$fit) <- "bart"
-  return(out)
-}
+# SL.bart <- function(Y, X, newX, family, ...) {
+#   require(dbarts)
+#   fit <- dbarts::bart(x.train = as.matrix(X), y.train = Y, x.test = as.matrix(newX))
+#   pred <- as.vector(fit$yhat.test.mean)  
+#   out <- list(pred = pred, fit = fit)
+#   class(out$fit) <- "bart"
+#   return(out)
+# }
 ```
 
 ```{r}
-data <- read_csv("weighting/data/example.csv")
+data <- read_csv("./weighting/data/example.csv")
 
 data <- data[, -1]  |>
   select(c(age_grp, gender, race, citizen, educ, marital, BMI, response))
@@ -51,22 +52,22 @@ listWrappers()
 ```
 
 ```{r}
-tune = list(cp = c(0.01, 0.001, 0.0005),
-            maxdepth = c(5, 10, 15),
-            minsplit = c(3, 4, 5))
+# tune = list(cp = c(0.01, 0.001, 0.0005),
+#             maxdepth = c(5, 10, 15),
+#             minsplit = c(3, 4, 5))
 
-learners = create.Learner("SL.rpart", tune = tune, detailed_names = FALSE, name_prefix = "rpart")
+# learners = create.Learner("SL.rpart", tune = tune, detailed_names = FALSE, name_prefix = "rpart")
 
-learners$names
+# learners$names
 ```
 
 ```{r}
-sl <- 
-  SuperLearner(Y = outcome, X = data, family = binomial(),
-    SL.library = c("SL.mean", "SL.glm", "SL.rpart", "SL.ranger", "SL.xgboost"))
+# sl <- 
+#   SuperLearner(Y = outcome, X = data, family = binomial(),
+#     SL.library = c("SL.mean", "SL.glm", "SL.rpart", "SL.ranger", "SL.xgboost"))
 
-# Review how long it took to run the SuperLearner:
-sl$times$everything
+# # Review how long it took to run the SuperLearner:
+# sl$times$everything
 ```
 
 ```{r}
@@ -81,31 +82,31 @@ getOption("mc.cores")
 ```
 
 ```{r}
-system.time({
-  # This will take about 2x as long as the previous SuperLearner.
-  cv_sl = CV.SuperLearner(Y = outcome, X = data, family = binomial(),
-                          # For a real analysis we would use V = 10.
-                          V = 5,
-                          SL.library = c("SL.mean", "SL.glm", "SL.rpart", "SL.ranger", "SL.xgboost"))
-})
+# system.time({
+#   # This will take about 2x as long as the previous SuperLearner.
+#   cv_sl = CV.SuperLearner(Y = outcome, X = data, family = binomial(),
+#                           # For a real analysis we would use V = 10.
+#                           V = 5,
+#                           SL.library = c("SL.mean", "SL.glm", "SL.rpart", "SL.ranger", "SL.xgboost"))
+# })
 ```
 
 ```{r}
 # We run summary on the cv_sl object rather than simply printing the object.
-summary(cv_sl)
+# summary(cv_sl)
 
-cv_sl$libraryNames
-cv_sl$coef
+# cv_sl$libraryNames
+# cv_sl$coef
 ```
 
 ```{r}
 # Review the distribution of the best single learner as external CV folds.
-table(simplify2array(cv_sl$whichDiscreteSL))
+# table(simplify2array(cv_sl$whichDiscreteSL))
 ```
 
 ```{r}
 # Plot the performance with 95% CIs (use a better ggplot theme).
-plot(cv_sl) + theme_bw()
+# plot(cv_sl) + theme_bw()
 ```
 
 ```{r}
@@ -117,7 +118,7 @@ system.time({
                           # For a real analysis we would use V = 10.
                           V = 5,
                           parallel = "multicore",
-                          SL.library = c("SL.mean", "SL.glm", learners$names, "SL.ranger", "SL.xgboost"))
+                          SL.library = c("SL.mean", "SL.glm", "SL.rpart", "SL.ranger", "SL.xgboost"))
 })
 ```
 
@@ -146,6 +147,23 @@ print(review_weights(cv_sl), digits = 3)
 ```
 
 ```{r}
+mat = review_weights(cv_sl)
+df <- as.data.frame(mat)  |> 
+  rename("weight" = "mean(weight)")
+df$method <- rownames(mat)
+df$method <- sub("^SL\\.", "", rownames(mat))    
+df$method <- sub("_All$", "", df$method)  
+
+
+ggplot(df, aes(x = "", y = weight, fill = method)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  labs(title = "Mean Weight Distribution", fill = "Method") +
+  theme_void()
+
+```
+
+```{r}
 plot(cv_sl) + theme_bw()
 ```
 
@@ -159,9 +177,10 @@ system.time({
                           V = 5,
                           parallel = "multicore",
                           method = "method.AUC",
-                          SL.library = c("SL.mean", "SL.glm", learners$names, "SL.ranger", "SL.xgboost"))
+                          SL.library = c("SL.mean", "SL.glm", "SL.rpart", "SL.ranger", "SL.xgboost"))
 })
 
 summary(cv_sl)
+plot(cv_sl) + theme_bw()
 ```
 

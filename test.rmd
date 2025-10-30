@@ -305,3 +305,5 @@ wed 10:30
 12.10 
 model based approach
 Thur 9:30
+
+new variablde in CHAID
