@@ -307,3 +307,14 @@ model based approach
 Thur 9:30
 
 new variablde in CHAID
+shap
+lime
+active plot
+
+home -> steps introduction instruction how it looks like ? which method recommendation 
+what you want ? which tab is useful for u.
+
+
+
+data input -> initial weights before adjustment 
+wed 9:30

@@ -323,6 +323,7 @@ tabPanel(title="Super Learner",
         ),
         card(
           card_header("Reference"),
+          a("learn more with xgboost", href = "https://www.bilibili.com/", target = "_blank")
         ),
       br(),
       fluidRow(align="center",
