@@ -147,6 +147,10 @@ print(review_weights(cv_sl), digits = 3)
 ```
 
 ```{r}
+plot(cv_sl) + theme_bw()
+```
+
+```{r}
 mat = review_weights(cv_sl)
 df <- as.data.frame(mat)  |> 
   rename("weight" = "mean(weight)")
@@ -164,10 +168,6 @@ ggplot(df, aes(x = "", y = weight, fill = method)) +
 ```
 
 ```{r}
-plot(cv_sl) + theme_bw()
-```
-
-```{r}
 set.seed(1, "L'Ecuyer-CMRG")
 
 # While this is running check CPU using in Activity Monitor / Task Manager.
@@ -181,6 +181,26 @@ system.time({
 })
 
 summary(cv_sl)
+print(review_weights(cv_sl), digits = 3)
+```
+
+```{r}
 plot(cv_sl) + theme_bw()
 ```
 
+```{r}
+mat = review_weights(cv_sl)
+df <- as.data.frame(mat)  |> 
+  rename("weight" = "mean(weight)")
+df$method <- rownames(mat)
+df$method <- sub("^SL\\.", "", rownames(mat))    
+df$method <- sub("_All$", "", df$method)  
+
+
+ggplot(df, aes(x = "", y = weight, fill = method)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  labs(title = "Mean Weight Distribution", fill = "Method") +
+  theme_void()
+
+```
