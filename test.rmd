@@ -318,3 +318,8 @@ what you want ? which tab is useful for u.
 
 data input -> initial weights before adjustment 
 wed 9:30
+
+
+CHAID CART
+MENU
+NAME WEIGHT AND response

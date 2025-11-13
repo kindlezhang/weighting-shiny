@@ -13,7 +13,6 @@ library(rpart.plot)
 library(DT)
 library(ggplot2)
 library(plotly)
-library(shinyWidgets)
 # library(promises)
 # library(future)
 # library(later)
@@ -228,8 +227,7 @@ ui <-
                 downloadButton("download_weighting_plot", "Download Plots")),
           conditionalPanel(
             condition = "input.show_plot_result % 2 == 1", 
-            plotOutput("weighting_plot"),
-            plotlyOutput("weighting_interactive")
+            plotOutput("weighting_plot")
             ),
           h4("Analysis Plot", style = "margin-top: 25px;"),
             div(style = "text-align: left; margin-top: 10px;",
@@ -665,36 +663,26 @@ server <- function(input, output) {
   })
 
   output$dynamic_checkbox <- renderUI({
-    if (is.null(input$file)) {
-      helpText("Please upload a file to enable variable selection.")
-    } else {
-      pickerInput(
-        inputId = "checkGroup",
-        label = "Select categorical variables:",
-        choices = names(data_input()),
-        selected = names(data_input())[1],
-        multiple = TRUE,
-        options = list(
-          `actions-box` = TRUE,   # 显示全选/全不选按钮
-          `live-search` = TRUE    # 支持搜索
-        )
-      )
-    }
-  })
-  
-  output$dynamic_checkbox_2 <- renderUI({
-    pickerInput(
-      inputId = "checkGroup_2",
-      label = "Select continuous variables:",
+  if (is.null(input$file)) {
+    helpText("Please upload a file to enable variable selection.")
+  } else {
+    checkboxGroupInput(
+      "checkGroup",
+      "Select categorical variables:",
       choices = names(data_input()),
-      selected = names(data_input())[1],
-      multiple = TRUE,
-      options = list(
-        `actions-box` = TRUE,   # 显示全选/全不选按钮
-        `live-search` = TRUE    # 支持搜索
-      )
+      selected = names(data_input())[1]
     )
-  })
+  }
+})
+
+  output$dynamic_checkbox_2 <- renderUI({
+    checkboxGroupInput(
+      "checkGroup_2",
+      "Select continuous variables:",
+      choices = names(data_input()),
+      selected = names(data_input())[1]
+    )
+})
 
   output$dynamic_selectbox <- renderUI({
     req(data_input())
@@ -1243,29 +1231,10 @@ observeEvent(input$show_table, {
       #     labs(x = NULL, y = "Count") +
       #     theme_classic()
       
-      p1 / p2 / combined_hist
+      p1 / p2 / p3_interactive / combined_hist
     })
 
     output$weighting_interactive <- renderPlotly({
-      req(plot_open())
-      req(vals$results)
-
-
-      df <- vals$results[[input$select_weighting]]  |> 
-        filter(.data[[input$selectGroup]] != 0)
-      
-      req(is.data.frame(df), nrow(df) > 0, ncol(df) >= 2)
-
-      # sec_last_name <- names(df)[ncol(df) - 1]
-      last_name     <- names(df)[ncol(df)]
-      df$.idx <- seq_len(nrow(df))
-
-      validate(need(is.numeric(df[[last_name]]), "The last column must be numeric to draw a histogram."))
-
-      wname <- input$selectGroup_2
-      has_weight_col <- !is.null(wname) && wname != "Null" && wname %in% names(df)
-      req(has_weight_col)
-
       # figure 3: new weight vs original weight
       df_new <- df %>%
         mutate(
