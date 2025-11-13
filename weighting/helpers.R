@@ -75,14 +75,88 @@ propensity_score_stratification <- function(data, response_var, weight_var, cate
   return(data)
 }
 
-chaid_method = function(data, response_var, weight_var, categorical_vars) {
+# chaid_method = function(data, response_var, weight_var, categorical_vars) {
+
+#   library(CHAID)
+#   set.seed(2025)
+
+#   # Check if the required columns are present
+#   if (!all(c(response_var, weight_var, categorical_vars) %in% names(data))) {
+#     stop("One or more specified columns are not present in the data.")
+#   }
+
+#   data = data[,c(categorical_vars, weight_var, response_var)]
+
+#   # Convert categorical variables to factors
+#   data[categorical_vars] <- lapply(data[categorical_vars], as.factor)
+
+#   # Create a formula for the model
+#   formula <- as.formula(paste0("factor(", response_var, " == 1) ~ ", paste(categorical_vars, collapse = " + ")))
+
+#   chaidobj <- chaid(formula, data = data)
+
+#   classes <- predict(chaidobj)
+
+#   #### Calculate weight by using the unweighted response rate in each terminal node of the tree
+#   chaid_pw = data.frame(data, rclass = attributes(classes)$names) %>% 
+#     group_by(rclass) %>% 
+#     mutate(
+#       m = sum(.data[[response_var]])/length(.data[[weight_var]]),
+#     ) %>% 
+#     ungroup() %>% dplyr::select(m) %>% unlist(use.names = FALSE)
+
+#   data$rclass = attributes(classes)$names
+
+#   data$WT_chaid = 1 / chaid_pw
+
+#   ## Construct the new weight
+#   data$adjW_chaid = data[[weight_var]] * data$WT_chaid
+  
+#   return(list(
+#     data = data,
+#     chaid_model = chaidobj
+#   ))
+# }
+
+chaid_method = function(data, response_var, weight_var, categorical_vars, continuous_vars = NULL) {
 
   library(CHAID)
   set.seed(2025)
 
   # Check if the required columns are present
-  if (!all(c(response_var, weight_var, categorical_vars) %in% names(data))) {
+  all_vars <- c(response_var, weight_var, categorical_vars, continuous_vars)
+  all_vars <- all_vars[!is.null(all_vars)]
+  if (!all(all_vars %in% names(data))) {
     stop("One or more specified columns are not present in the data.")
+  }
+
+  if (!is.null(continuous_vars) && length(continuous_vars) > 0) {
+    for (var in continuous_vars) {
+      # 生成新变量名
+      new_var <- paste0(var, "_c")
+      if (new_var %in% names(data)) {
+        new_var <- paste0(new_var, "_new")
+      }
+
+      # 分成4个等级（1,2,3,4）
+      tryCatch({
+        data[[new_var]] <- cut(
+          data[[var]],
+          breaks = quantile(data[[var]], probs = seq(0, 1, 0.25), na.rm = TRUE),
+          include.lowest = TRUE,
+          labels = FALSE
+        )
+      }, error = function(e) {
+        warning(paste("Variable", var, "could not be binned due to missing or invalid values."))
+        data[[new_var]] <- NA
+      })
+
+      # 转为factor
+      data[[new_var]] <- as.factor(data[[new_var]])
+
+      # 加入分类变量集合
+      categorical_vars <- c(categorical_vars, new_var)
+    }
   }
 
   data = data[,c(categorical_vars, weight_var, response_var)]

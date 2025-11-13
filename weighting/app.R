@@ -41,6 +41,12 @@ custom_card_header_style <- tags$head(
       color: #0d6efd;          
       background-color: #f8f9fa; 
     }
+    .card-body {
+      overflow: visible !important;
+    }
+    .card {
+      overflow: visible !important;
+    }
   "))
 )
 
@@ -239,6 +245,7 @@ ui <-
             plotOutput("analysis_plot")
             ),
             h4("Compare Methods", style = "margin-top: 25px;"),
+              uiOutput("method_checkbox"),
              div(style = "text-align: left; margin-top: 10px;",
                 actionButton("show_compare_plot", "Show Plot", class = "btn-primary")),
           conditionalPanel(
@@ -671,7 +678,7 @@ server <- function(input, output) {
       pickerInput(
         inputId = "checkGroup",
         label = "Select categorical variables:",
-        choices = names(data_input()),
+        choices = names(data_input())[!grepl("weight", tolower(names(data_input())))],
         selected = names(data_input())[1],
         multiple = TRUE,
         options = list(
@@ -827,18 +834,18 @@ server <- function(input, output) {
   #     )
   #   })
 
-  # # --- 动态状态显示逻辑 ---
-  # # 1. 状态变量：控制是否正在运行
-  # is_running <- reactiveVal(FALSE)
-  # # 2. 状态文本：用于显示在 Modal 中
-  # status_text <- reactiveVal("Initializing...")
+  # --- 动态状态显示逻辑 ---
+  # 1. 状态变量：控制是否正在运行
+  is_running <- reactiveVal(FALSE)
+  # 2. 状态文本：用于显示在 Modal 中
+  status_text <- reactiveVal("Initializing...")
 
-  # # --- 顶层 UI 渲染逻辑 (不要放在 observeEvent 里) ---
+  # --- 顶层 UI 渲染逻辑 (不要放在 observeEvent 里) ---
 
-  # output$running_status <- renderText({
-  #   # 这里直接读取 reactiveVal
-  #   status_text()
-  # })
+  output$running_status <- renderText({
+    # 这里直接读取 reactiveVal
+    status_text()
+  })
 
   # # --- 动态省略号动画逻辑 ---
   # # 只有当 is_running() 为 TRUE 时，定时器才有效
@@ -971,60 +978,156 @@ server <- function(input, output) {
 
   # })
 
+# observeEvent(input$show_table, {
+#   method_results <- list( 
+#     "Inverse Propensity Score" = 
+#       propensity_score_glm( data = data_input(), 
+#           response_var = input$selectGroup,  
+#           weight_var = input$selectGroup_2, 
+#           categorical_vars = input$checkGroup, 
+#           continuous_vars = input$checkGroup_2 ), 
+#     "Propensity score stratification" = 
+#           propensity_score_stratification( data = data_input(), 
+#           response_var = input$selectGroup, 
+#           weight_var = input$selectGroup_2, 
+#           categorical_vars = input$checkGroup,
+#           continuous_vars = input$checkGroup_2 ), 
+#      "CHAID algorithm" = chaid_method( 
+#             data = data_input(), 
+#             response_var = input$selectGroup, 
+#             weight_var = input$selectGroup_2, 
+#             categorical_vars = input$checkGroup ), 
+#      "classification and regression trees (CART)" = 
+#         CART_method( data = data_input(), 
+#         response_var = input$selectGroup, 
+#         weight_var = input$selectGroup_2, 
+#         categorical_vars = input$checkGroup ), 
+#      "BART package" = BART_method( data = data_input(), 
+#         response_var = input$selectGroup, 
+#         weight_var = input$selectGroup_2, 
+#         categorical_vars = input$checkGroup, 
+#         continuous_vars = input$checkGroup_2 ), 
+#      "xgboost package" = xgboost_method( data = data_input(), 
+#           response_var = input$selectGroup, 
+#           weight_var = input$selectGroup_2, 
+#           categorical_vars = input$checkGroup, 
+#           continuous_vars = input$checkGroup_2 ) )
+
+#         vals$results <- list(
+#         "Inverse Propensity Score" = method_results[["Inverse Propensity Score"]],
+#         "Propensity score stratification" = method_results[["Propensity score stratification"]],
+#         "CHAID algorithm" = method_results[["CHAID algorithm"]][["data"]],
+#         "classification and regression trees (CART)" = method_results[["classification and regression trees (CART)"]][["data"]],
+#         "BART package" = method_results[["BART package"]][["data"]],
+#         "xgboost package" = method_results[["xgboost package"]][["data"]]
+#       )
+
+#       vals$objects <- list(
+#         "CHAID algorithm" = method_results[["CHAID algorithm"]][["chaid_model"]],
+#         "classification and regression trees (CART)" = method_results[["classification and regression trees (CART)"]][["cart_model"]],
+#         "BART package" = method_results[["BART package"]][["bart_model"]],
+#         "xgboost package" = method_results[["xgboost package"]][["xgboost_model"]]
+#       )
+# })
+
 observeEvent(input$show_table, {
-  method_results <- list( 
-    "Inverse Propensity Score" = 
-      propensity_score_glm( data = data_input(), 
-          response_var = input$selectGroup,  
-          weight_var = input$selectGroup_2, 
-          categorical_vars = input$checkGroup, 
-          continuous_vars = input$checkGroup_2 ), 
-    "Propensity score stratification" = 
-          propensity_score_stratification( data = data_input(), 
-          response_var = input$selectGroup, 
-          weight_var = input$selectGroup_2, 
-          categorical_vars = input$checkGroup,
-          continuous_vars = input$checkGroup_2 ), 
-     "CHAID algorithm" = chaid_method( 
-            data = data_input(), 
-            response_var = input$selectGroup, 
-            weight_var = input$selectGroup_2, 
-            categorical_vars = input$checkGroup ), 
-     "classification and regression trees (CART)" = 
-        CART_method( data = data_input(), 
-        response_var = input$selectGroup, 
-        weight_var = input$selectGroup_2, 
-        categorical_vars = input$checkGroup ), 
-     "BART package" = BART_method( data = data_input(), 
-        response_var = input$selectGroup, 
-        weight_var = input$selectGroup_2, 
-        categorical_vars = input$checkGroup, 
-        continuous_vars = input$checkGroup_2 ), 
-     "xgboost package" = xgboost_method( data = data_input(), 
-          response_var = input$selectGroup, 
-          weight_var = input$selectGroup_2, 
-          categorical_vars = input$checkGroup, 
-          continuous_vars = input$checkGroup_2 ) )
+  # 弹出运行提示框
+  showModal(modalDialog(
+    title = "Running Analysis",
+    "The analysis is running, please wait...",
+    footer = NULL,
+    easyClose = FALSE
+  ))
 
-        vals$results <- list(
-        "Inverse Propensity Score" = method_results[["Inverse Propensity Score"]],
-        "Propensity score stratification" = method_results[["Propensity score stratification"]],
-        "CHAID algorithm" = method_results[["CHAID algorithm"]][["data"]],
-        "classification and regression trees (CART)" = method_results[["classification and regression trees (CART)"]][["data"]],
-        "BART package" = method_results[["BART package"]][["data"]],
-        "xgboost package" = method_results[["xgboost package"]][["data"]]
-      )
+  # 记录开始时间
+  start_time <- Sys.time()
 
-      vals$objects <- list(
-        "CHAID algorithm" = method_results[["CHAID algorithm"]][["chaid_model"]],
-        "classification and regression trees (CART)" = method_results[["classification and regression trees (CART)"]][["cart_model"]],
-        "BART package" = method_results[["BART package"]][["bart_model"]],
-        "xgboost package" = method_results[["xgboost package"]][["xgboost_model"]]
+  # 使用 future 或 withProgress 包裹，避免阻塞界面
+  # 这里用 withProgress 演示
+  withProgress(message = "Running analysis...", value = 0, {
+
+    incProgress(0.1, detail = "Computing methods...")
+
+    method_results <- list(
+      "Inverse Propensity Score" = propensity_score_glm(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup,
+        continuous_vars = input$checkGroup_2
+      ),
+      "Propensity score stratification" = propensity_score_stratification(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup,
+        continuous_vars = input$checkGroup_2
+      ),
+      "CHAID algorithm" = chaid_method(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup,
+        continuous_vars = input$checkGroup_2
+      ),
+      "classification and regression trees (CART)" = CART_method(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup
+      ),
+      "BART package" = BART_method(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup,
+        continuous_vars = input$checkGroup_2
+      ),
+      "xgboost package" = xgboost_method(
+        data = data_input(),
+        response_var = input$selectGroup,
+        weight_var = input$selectGroup_2,
+        categorical_vars = input$checkGroup,
+        continuous_vars = input$checkGroup_2
       )
+    )
+
+    incProgress(0.7, detail = "Extracting results...")
+
+    vals$results <- list(
+      "Inverse Propensity Score" = method_results[["Inverse Propensity Score"]],
+      "Propensity score stratification" = method_results[["Propensity score stratification"]],
+      "CHAID algorithm" = method_results[["CHAID algorithm"]][["data"]],
+      "classification and regression trees (CART)" = method_results[["classification and regression trees (CART)"]][["data"]],
+      "BART package" = method_results[["BART package"]][["data"]],
+      "xgboost package" = method_results[["xgboost package"]][["data"]]
+    )
+
+    vals$objects <- list(
+      "CHAID algorithm" = method_results[["CHAID algorithm"]][["chaid_model"]],
+      "classification and regression trees (CART)" = method_results[["classification and regression trees (CART)"]][["cart_model"]],
+      "BART package" = method_results[["BART package"]][["bart_model"]],
+      "xgboost package" = method_results[["xgboost package"]][["xgboost_model"]]
+    )
+
+    incProgress(1, detail = "Finishing up...")
+  })
+
+  # 记录结束时间
+  end_time <- Sys.time()
+  elapsed_time <- round(difftime(end_time, start_time, units = "secs"), 2)
+
+  # 关闭运行提示框
+  removeModal()
+
+  # 弹出一个完成提示框，显示用时
+  showModal(modalDialog(
+    title = "Analysis Complete",
+    paste0("Analysis completed in ", elapsed_time, " seconds."),
+    easyClose = TRUE,
+    footer = modalButton("OK")
+  ))
 })
-
-
-
 
 
   output$method_description <- renderText({
@@ -1064,10 +1167,11 @@ observeEvent(input$show_table, {
   observeEvent(input$show_warning, {
       showModal(modalDialog(
         title = "warning for a CHAID algorithm",
-        p(strong(" 'Attention Please:' "), 
-        "The CHAID algorithm cannot be directly applied to continuous variables—you will find that selected continuous 
-          variables are missing from your results. We recommend that you can 
-          manually convert continuous variables into categorical variables."),
+        p(strong(" Attention Please: "), 
+        "You will find that the continuous variables you selected have been converted into new categorical variables; 
+        we divide the original variable into four groups to generate these new categories. 
+        If you are not satisfied with our categorization, you can manually convert continuous variables into categorical 
+        variables at the beginning."),
         footer = modalButton("close"),
         easyClose = TRUE 
       ))
@@ -1407,6 +1511,23 @@ observeEvent(input$show_table, {
     }
     
   })
+
+  output$method_checkbox <- renderUI({
+      # 可选方法列表（你可以改成动态的，比如从数据提取）
+      method_choices <- c("GLM", "Random Forest", "CART", "XGBoost", "Mean")
+
+      pickerInput(
+        inputId = "select_methods",
+        label = "Select methods to compare:",
+        choices = method_choices,
+        selected = method_choices[1],  # 默认选中第一个
+        multiple = TRUE,
+        options = list(
+          `actions-box` = TRUE,   # 全选/全不选按钮
+          `live-search` = TRUE    # 支持搜索
+        )
+      )
+    })
 
   compare_open <- reactiveVal(FALSE)
 
