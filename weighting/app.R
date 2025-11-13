@@ -53,12 +53,16 @@ ui <-
     tabPanel(title = 'Home',
               shinyjs::useShinyjs(),
               fluidRow(
-                column(width = 5, offset = 1, div(img(src = "newlogo3.png", height = "100%",width = "100%"),
+                column(width = 5, offset = 1, div(img(src = "background.png", height = "70%",width = "50%"),
                                                       style="text-align: center;")),
                 column(width = 5,  div(img(src = "HomePagepic.png", height = "100%",width = "100%"),
                                            style="text-align: center;"))),
               br(),
               fluidRow(column(width = 10, offset = 1, span(htmlOutput("Hometext"), style="font-size: 15px;line-height:150%"))),
+              br(),
+              fluidRow(column(width = 10, offset = 1, 
+                h3("instruction"),
+                span(htmlOutput("Instruction"), style="font-size: 15px;line-height:150%"))),
               br(),
               fluidRow(align="center",
                         span(htmlOutput("bannertext", style="color:white;font-family: sans-serif, Helvetica Neue, Arial;
@@ -104,22 +108,27 @@ ui <-
   ),
   tabPanel(title = "Data Upload",
     card(
-        card_header("Welcome to the Weighting Application"),
-        p("This application allows you to upload a dataset and perform weighting adjustments based on selected variables."),
-        p("Please upload your dataset in CSV format and select the appropriate variables for analysis."),
-        p("There are two type of data,"),
-        p("1. population level data: where each row represents an individual and columns represent individual-level variables."),
-        p("2. sample level data: where each row represents a sample and columns represent sample-level variables."),
-        p("we recommand to use population level data with a individual-level weighting approach, and sample level data with a post-stratification or raking approach, along with the summary table."),
+        card_header("Input data"),
+        p("Please upload your dataset in CSV format."),
         fileInput("file", label = NULL)
       ),
       card(
         card_header("Uploaded Table"),
-        tableOutput("data_table")
+        div(style = "text-align: left; margin-top: 10px;",
+                actionButton("show_table_result_1", "Show Table", class = "btn-primary")),
+          conditionalPanel(
+            condition = "input.show_table_result_1 % 2 == 1", 
+            DT::dataTableOutput("data_table")
+            )
       ),
       card(
         card_header("Summary"),
-        verbatimTextOutput("summary_output")
+        div(style = "text-align: left; margin-top: 10px;",
+                actionButton("show_summary", "Show Summary", class = "btn-primary")),
+          conditionalPanel(
+            condition = "input.show_summary% 2 == 1", 
+             verbatimTextOutput("summary_output")
+            )
       ),
       br(),
       fluidRow(align="center",
@@ -611,16 +620,98 @@ server <- function(input, output) {
   shinyjs::addClass(id = "menus", class = "navbar-right")
 
   output$Hometext <- renderUI({
-    HTML(paste0("This is a weighting application developed by the <a href='https://www.publichealth.columbia.edu/'>Columbia University Mailman School of Public Health</a> team. 
+    HTML("      <p>Welcome to the <b>Weighting Adjustment Application!</b><br><p>
+                This is a weighting application developed by the <a href='https://www.publichealth.columbia.edu/'>Columbia University Mailman School of Public Health</a> team. 
                 This application allows users to upload their datasets and perform various weighting adjustments, including inverse propensity score weighting, propensity score stratification, CHAID algorithm, CART, BART, and XGBoost methods. 
                 Users can select categorical variables, response variables, and weight variables from their uploaded datasets to conduct the analysis. 
                 The application also provides options for post-stratification adjustments based on selected variables. 
                 Users can choose parameters based on their sampling methods, such as stratification, clustering, weights, and population-level adjustments. 
                 The results of the weighting adjustments and post-stratification can be viewed in tables and downloaded for further analysis. 
-                This tool is designed to facilitate data analysis and improve the accuracy of survey results through appropriate weighting techniques."))
+                This tool is designed to facilitate data analysis and improve the accuracy of survey results through appropriate weighting techniques.")
+  })
+
+  output$Instruction <- renderUI({
+    HTML('
+      Before you begin, please make sure you understand the type of data you have and what kind of adjustment you intend to perform.
+      The workflow generally follows one of the three paths below:</p>
+
+      <h4>1. If you only have individual-level survey data</h4>
+      <ul>
+        <li>
+          Go to the <b>Data Upload</b> tab to upload your dataset in CSV format.
+          
+          <button id="example_btn" type="button" class="btn btn-danger btn-sm"
+                  onclick="Shiny.setInputValue(\'showExample\', Math.random())">
+            Data Example
+          </button>
+          
+        </li>
+        <li>Then proceed to the <b>Nonresponse Adjustment</b> tab.</li>
+        <li>Select relevant variables (e.g., demographic or design variables) for nonresponse weighting adjustment.</li>
+        <li>Click <b>Generate Analysis</b> to perform the adjustment and view results in table and plot formats.</li>
+      </ul>
+
+      <h4>2. If you also have marginal or population-level data</h4>
+      <ul>
+        <li>Navigate to the <b>Post-Stratification</b> tab.</li>
+        <li>Upload your marginal or population benchmark data files.</li>
+        <li>Choose between <b>raking</b> and <b>post-stratification</b> adjustments based on your data.</li>
+        <li>Run the analysis and download the adjusted weights.</li>
+      </ul>
+
+      <h4>3. If you only want to trim existing weights</h4>
+      <ul>
+        <li>Go directly to the <b>Weight Trimming</b> tab.</li>
+        <li>Upload the dataset containing the existing weights.</li>
+        <li>Specify trimming thresholds or criteria, run the procedure, and download the results.</li>
+      </ul>
+
+      <h4>Additional Information</h4>
+      <p>If you need further assistance or more information about the application,
+      please refer to the <b>About Us</b> tab.</p>
+    ') })
+
+
+  observeEvent(input$showExample, {
+    showModal(modalDialog(
+      title = "Example Dataset",
+      size = "l",
+      easyClose = TRUE,
+      footer = modalButton("Close"),
+      tagList(
+        p("Below is an example of a survey dataset:"),
+        p("Make sure your data table has a weight column and a response column."),
+        p("1. If your original data does not have a weight column, add one with all values equal to 1. Your response column should be 0/1, where 1 indicates a response. In this example, the response is linked to the HbA1c variable; NaN values correspond to 0 in the response column."),
+        p("2. Besides weight and response, the dataset should include at least one categorical or continuous variable."),
+        p("3. The dataset should be in CSV format."),
+        tableOutput("example_table")
+      )
+    ))
+  })
+
+  output$example_table <- renderTable({
+    # 假定文件都放在 www 文件夹下
+    csv_path  <- file.path("data", "example_data.csv")
+    xls_path  <- file.path("data", "example_data.xls")
+    xlsx_path <- file.path("data", "example_data.xlsx")
+
+    # 检查文件并读取
+    if (file.exists(csv_path)) {
+      df <- readr::read_csv(csv_path, show_col_types = FALSE)
+    } else if (file.exists(xlsx_path)) {
+      df <- readxl::read_excel(xlsx_path)
+    } else if (file.exists(xls_path)) {
+      df <- readxl::read_excel(xls_path)
+    } else {
+      # 若没有找到任何文件，显示提示
+      return(data.frame(Message = "⚠️ Example data file not found in www folder."))
+    }
+
+    # 返回前10行
+    head(df, 10)
   })
   
-   output$bannertext = renderText({
+  output$bannertext = renderText({
     return(
       "studying weighting methods for survey data analysis"
     )
@@ -909,6 +1000,45 @@ server <- function(input, output) {
       ))
     })
 
+  table_open_1 <- reactiveVal(FALSE)
+
+  observeEvent(input$show_table_result_1, {
+    # 翻转开关
+    table_open_1(!table_open_1())
+    # 改变按钮的文字
+    if (table_open_1()) {
+      updateActionButton(inputId = "show_table_result_1", label = "Close Table")
+    } else {
+      updateActionButton(inputId = "show_table_result_1", label = "Show Table")
+    }
+  })
+
+   output$data_table <- DT::renderDataTable({
+      req(table_open_1())
+      # 表格数据
+      df <- data_input()
+      DT::datatable(df, options = list(pageLength = 10, lengthMenu = c(10, 50, 100)))
+    })
+
+
+  summary_open <- reactiveVal(FALSE)
+
+  observeEvent(input$show_summary, {
+    # 翻转开关
+    summary_open(!summary_open())
+    # 改变按钮的文字
+    if (summary_open()) {
+      updateActionButton(inputId = "show_summary", label = "Close Summary")
+    } else {
+      updateActionButton(inputId = "show_summary", label = "Show Summary")
+    }
+  })
+
+  output$summary_output <- renderPrint({
+    req(summary_open())
+    summary(data_input())
+  })
+
   table_open <- reactiveVal(FALSE)
 
   observeEvent(input$show_table_result, {
@@ -930,14 +1060,6 @@ server <- function(input, output) {
     DT::datatable(df, options = list(pageLength = 10, lengthMenu = c(10, 50, 100)))
   })
 
-  output$data_table <- renderTable({
-    req(data_input())
-    head(data_input(), 10)  
-  })
-
-  output$summary_output <- renderPrint({
-    summary(data_input())
-  })
 
   plot_open <- reactiveVal(FALSE)
 
